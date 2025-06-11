@@ -4,7 +4,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const InlineChunkHtmlPlugin = require('inline-chunk-html-plugin');
 
 module.exports = (env, argv) => ({
-  mode: argv.mode === 'production' ? 'production' : 'development',
+  mode: 'development',
   devtool: argv.mode === 'production' ? false : 'inline-source-map',
 
   entry: {

@@ -1,5 +1,6 @@
 // src/ui/main.tsx
 import React, { useEffect } from 'react';
+// --- FIX 1: Import the full ReactDOM library ---
 import { createRoot } from 'react-dom/client';
 import { useStore } from './lib/state';
 import { postToFigma } from './lib/utils';
@@ -80,4 +81,6 @@ function App() {
   }
 }
 
-createRoot(document.getElementById('root')!).render(<App />);
+document.addEventListener('DOMContentLoaded', () => {
+  createRoot(document.getElementById('root')!).render(<App />);
+});
