@@ -2,30 +2,88 @@
 import { create } from 'zustand';
 import { ComponentSpec, ScreenSpec, ExportBundle } from '../../shared/types';
 
-type AppStage = 'welcome' | 'analyzing' | 'review' | 'exporting' | 'complete';
+export type AppStage = 'welcome' | 'analyzing' | 'review' | 'exporting' | 'complete' | 'error';
+
+interface ErrorState {
+  message: string;
+  context: string;
+}
 
 interface AppState {
+  // Core state
   appStage: AppStage;
   isLoading: boolean;
   discoveredComponents: ComponentSpec[];
   screenSpecs: ScreenSpec[];
   exportBundle: ExportBundle | null;
+  
+  // Error handling
+  error: ErrorState | null;
+  
+  // Loading states
+  isAnalyzing: boolean;
+  isExporting: boolean;
+  isRefreshing: boolean;
+
+  // Actions
   setStage: (stage: AppStage) => void;
   setLoading: (loading: boolean) => void;
   setDiscoveredComponents: (components: ComponentSpec[]) => void;
   setScreenSpecs: (specs: ScreenSpec[]) => void;
   setExportBundle: (bundle: ExportBundle) => void;
+  setError: (error: ErrorState | null) => void;
+  setAnalyzing: (isAnalyzing: boolean) => void;
+  setExporting: (isExporting: boolean) => void;
+  setRefreshing: (isRefreshing: boolean) => void;
+  
+  // Complex actions
+  refreshComponents: () => Promise<void>;
+  clearError: () => void;
+  reset: () => void;
 }
 
-export const useStore = create<AppState>((set) => ({
-  appStage: 'welcome',
-  isLoading: true, // Starts true until INIT_COMPLETE is received
+const initialState = {
+  appStage: 'welcome' as AppStage,
+  isLoading: true,
   discoveredComponents: [],
   screenSpecs: [],
   exportBundle: null,
+  error: null,
+  isAnalyzing: false,
+  isExporting: false,
+  isRefreshing: false,
+};
+
+export const useStore = create<AppState>((set, get) => ({
+  ...initialState,
+
   setStage: (stage) => set({ appStage: stage, isLoading: false }),
   setLoading: (loading) => set({ isLoading: loading }),
   setDiscoveredComponents: (components) => set({ discoveredComponents: components }),
   setScreenSpecs: (specs) => set({ screenSpecs: specs }),
   setExportBundle: (bundle) => set({ exportBundle: bundle }),
+  setError: (error) => set({ error, appStage: error ? 'error' : get().appStage }),
+  setAnalyzing: (isAnalyzing) => set({ isAnalyzing }),
+  setExporting: (isExporting) => set({ isExporting }),
+  setRefreshing: (isRefreshing) => set({ isRefreshing }),
+
+  refreshComponents: async () => {
+    const { setRefreshing, setDiscoveredComponents, setError } = get();
+    setRefreshing(true);
+    try {
+      // This will be handled by the plugin controller
+      window.parent.postMessage({ pluginMessage: { type: 'REFRESH_COMPONENTS' } }, '*');
+    } catch (error) {
+      setError({ 
+        message: error instanceof Error ? error.message : 'Failed to refresh components',
+        context: 'component-refresh'
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  },
+
+  clearError: () => set({ error: null }),
+  
+  reset: () => set(initialState),
 }));

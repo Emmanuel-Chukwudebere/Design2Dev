@@ -1,86 +1,129 @@
 // src/ui/main.tsx
 import React, { useEffect } from 'react';
-// --- FIX 1: Import the full ReactDOM library ---
 import { createRoot } from 'react-dom/client';
 import { useStore } from './lib/state';
 import { postToFigma } from './lib/utils';
 import { WelcomeScreen } from './features/WelcomeScreen';
 import { ReviewScreen } from './features/ReviewScreen';
 import { ExportScreen } from './features/ExportScreen';
-
-const styles = document.createElement('style');
-document.head.appendChild(styles);
-styles.innerHTML = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-  :root { /* 2px spacing system */
-    --space-1: 2px; --space-2: 4px; --space-3: 6px; --space-4: 8px;
-    --space-5: 10px; --space-6: 12px; --space-8: 16px; --space-12: 24px;
-  }
-  body { margin: 0; font-family: 'Inter', sans-serif; background-color: #FAFBFC; color: #111827; }
-  .loading-spinner {
-    width: 48px; height: 48px; border: 5px solid #F3F4F6;
-    border-bottom-color: #111827; border-radius: 50%; display: inline-block;
-    box-sizing: border-box; animation: rotation 1s linear infinite;
-  }
-  @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-`;
+import { ErrorScreen } from './features/ErrorScreen';
+import './styles/main.css';
 
 function LoadingIndicator({ text }: { text: string }) {
-    return (
-        <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh'}}>
-            <div className="loading-spinner"></div>
-            <p style={{marginTop: 'var(--space-8)', fontWeight: 600}}>{text}</p>
-        </div>
-    );
+  return (
+    <div className="loading-container">
+      <div className="loading-spinner"></div>
+      <div className="loading-text">{text}</div>
+    </div>
+  );
 }
 
 function App() {
   const store = useStore();
 
   useEffect(() => {
-    window.onmessage = (event) => {
+    const handleMessage = (event: MessageEvent) => {
       const { type, payload } = event.data.pluginMessage;
+      
       switch (type) {
         case 'INIT_COMPLETE':
           store.setDiscoveredComponents(payload.discoveredComponents);
           store.setLoading(false);
           break;
+
+        case 'ANALYSIS_STARTED':
+          store.setAnalyzing(true);
+          store.setStage('analyzing');
+          break;
+
         case 'ANALYSIS_COMPLETE':
           store.setScreenSpecs(payload.screenSpecs);
+          store.setAnalyzing(false);
           store.setStage('review');
           break;
+
         case 'ANALYSIS_FAILED':
-          store.setStage('welcome'); // Reset to welcome screen on failure
+          store.setAnalyzing(false);
+          store.setError({
+            message: 'Failed to analyze screens',
+            context: 'analysis'
+          });
           break;
+
+        case 'EXPORT_STARTED':
+          store.setExporting(true);
+          store.setStage('exporting');
+          break;
+
         case 'EXPORT_COMPLETE':
           store.setExportBundle(payload.exportBundle);
+          store.setExporting(false);
           store.setStage('complete');
+          break;
+
+        case 'EXPORT_FAILED':
+          store.setExporting(false);
+          store.setError({
+            message: 'Failed to generate export bundle',
+            context: 'export'
+          });
+          break;
+
+        case 'COMPONENTS_REFRESHED':
+          store.setDiscoveredComponents(payload.discoveredComponents);
+          store.setRefreshing(false);
+          break;
+
+        case 'ERROR':
+          store.setError({
+            message: payload.message,
+            context: payload.context
+          });
           break;
       }
     };
+
+    window.addEventListener('message', handleMessage);
     postToFigma('INIT');
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
   }, []);
 
   if (store.isLoading) {
     return <LoadingIndicator text="Discovering components..." />;
   }
 
-  switch (store.appStage) {
-    case 'welcome':
-      return <WelcomeScreen />;
-    case 'analyzing':
-      return <LoadingIndicator text="Analyzing screens..." />;
-    case 'review':
-      return <ReviewScreen />;
-    case 'exporting':
-      return <LoadingIndicator text="Generating bundle..." />;
-    case 'complete':
-      return <ExportScreen />;
-    default:
-      return <WelcomeScreen />;
+  if (store.error) {
+    return <ErrorScreen error={store.error} onRetry={store.clearError} />;
   }
+
+  return (
+    <div className="container">
+      <div className="header">
+        <h1>Design2Dev</h1>
+        <p>Design to Code, Instantly</p>
+      </div>
+      <div className="content">
+        {store.appStage === 'welcome' && <WelcomeScreen />}
+        {store.appStage === 'analyzing' && <LoadingIndicator text="Analyzing screens..." />}
+        {store.appStage === 'review' && <ReviewScreen />}
+        {store.appStage === 'exporting' && <LoadingIndicator text="Generating bundle..." />}
+        {store.appStage === 'complete' && <ExportScreen />}
+      </div>
+    </div>
+  );
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  createRoot(document.getElementById('root')!).render(<App />);
-});
+// Initialize app
+const root = document.getElementById('root');
+if (!root) {
+  throw new Error('Root element not found');
+}
+
+createRoot(root).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);

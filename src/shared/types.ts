@@ -50,6 +50,8 @@ export type StyleProperties = {
 // --- Design System & Components ---
 export type SupportedDesignSystem =
   | 'React Native Paper'
+  | 'Material UI'
+  | 'Chakra UI'
   | 'NativeBase'
   | 'React Native Elements'
   | 'UI Kitten'
@@ -108,4 +110,11 @@ export interface ExportBundle {
   aiPrompts: AIPrompt[];
   assets: { name: string; data: Uint8Array }[];
   zipFile?: Uint8Array; // This property is now correctly defined
+}
+
+export interface DesignSystem {
+  name: string;
+  description: string;
+  components: Record<string, any>;
+  dependencies: string[];
 }

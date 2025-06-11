@@ -6,8 +6,9 @@ import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 
 export function ExportScreen() {
-  const { exportBundle } = useStore();
+  const { exportBundle, setError } = useStore();
   const [isReady, setIsReady] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     if (exportBundle) {
@@ -15,25 +16,47 @@ export function ExportScreen() {
     }
   }, [exportBundle]);
 
-  const handleDownload = () => {
-    if (!exportBundle?.zipFile) return;
-    const blob = new Blob([exportBundle.zipFile], { type: 'application/zip' });
-    saveAs(blob, 'Design2Dev_Export.zip');
+  const handleDownload = async () => {
+    if (!exportBundle?.zipFile) {
+      setError({
+        message: 'Export bundle is not ready',
+        context: 'export'
+      });
+      return;
+    }
+
+    try {
+      setIsDownloading(true);
+      const blob = new Blob([exportBundle.zipFile], { type: 'application/zip' });
+      await saveAs(blob, 'Design2Dev_Export.zip');
+    } catch (error) {
+      setError({
+        message: error instanceof Error ? error.message : 'Failed to download export bundle',
+        context: 'export'
+      });
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   return (
-    <div style={{ padding: 'var(--space-8)' }}>
-      <h1 style={{ textAlign: 'center' }}>Export Ready!</h1>
+    <div className="section">
+      <div className="section-title">Export Ready!</div>
       <Card>
         <p>Your comprehensive specification bundle is ready for download.</p>
         <p>It includes:</p>
-        <ul style={{ paddingLeft: 'var(--space-8)' }}>
+        <ul className="export-list">
           <li>Component & Screen Specs (JSON)</li>
           <li>AI-Optimized Prompts (MD)</li>
           <li>SVG Assets</li>
+          <li>PNG Assets (1x, 2x, 3x)</li>
         </ul>
-        <Button onClick={handleDownload} disabled={!isReady} style={{ width: '100%' }}>
-          {isReady ? 'Download .zip Bundle' : 'Processing...'}
+        <Button 
+          onClick={handleDownload} 
+          disabled={!isReady || isDownloading}
+          className="export-button"
+        >
+          {isDownloading ? 'Downloading...' : isReady ? 'Download .zip Bundle' : 'Processing...'}
         </Button>
       </Card>
     </div>
