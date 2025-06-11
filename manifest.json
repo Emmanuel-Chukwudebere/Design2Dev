@@ -1,0 +1,12 @@
+{
+    "name": "Design2Dev",
+    "id": "design2dev-plugin",
+    "api": "1.0.0",
+    "main": "dist/controller.js",
+    "ui": "dist/ui.html",
+    "editorType": ["figma"],
+    "networkAccess": {
+      "allowedDomains": ["https://fonts.googleapis.com"],
+      "reasoning": "Allows the plugin to fetch font data for more accurate text style generation and to check for updates."
+    }
+  }

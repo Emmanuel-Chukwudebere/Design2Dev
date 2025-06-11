@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+      "target": "es6",
+      "lib": ["es6", "dom"],
+      "module": "esnext",
+      "jsx": "react-jsx",
+      "strict": true,
+      "moduleResolution": "node",
+      "allowSyntheticDefaultImports": true,
+      "esModuleInterop": true,
+      "typeRoots": ["./node_modules/@types", "./node_modules/@figma"],
+      "outDir": "./dist",
+      "forceConsistentCasingInFileNames": true,
+      "skipLibCheck": true
+    },
+    "include": ["src/**/*"]
+  }
