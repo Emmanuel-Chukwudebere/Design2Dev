@@ -7,12 +7,11 @@ import { designSystems } from '../../plugin/systems';
 import { SupportedDesignSystem } from '../../shared/types';
 
 export function WelcomeScreen() {
-  const { setStage } = useStore();
+  const { setStage, pageInfo } = useStore();
   const [selectedSystem, setSelectedSystem] = useState<SupportedDesignSystem>('React Native Paper');
 
-  const handleAnalyzeClick = () => {
-    setStage('analyzing');
-    postToFigma('ANALYZE_SCREENS', { designSystem: selectedSystem });
+  const handleDiscoverClick = () => {
+    postToFigma('DISCOVER_COMPONENTS');
   };
 
   const handleDesignSystemChange = (system: SupportedDesignSystem) => {
@@ -26,6 +25,12 @@ export function WelcomeScreen() {
         <p className="welcome-description">
           Transform your Figma designs into production-ready React Native code in minutes.
         </p>
+
+        {pageInfo && (
+          <div className="page-info">
+            <p>Page: {pageInfo.name} ({pageInfo.nodeCount} top-level nodes)</p>
+          </div>
+        )}
 
         <div className="feature-list">
           <div className="feature-item">
@@ -78,9 +83,9 @@ export function WelcomeScreen() {
         </div>
 
         <div className="action-section">
-          <p className="action-hint">Select up to 5 screens in Figma to begin</p>
-          <Button onClick={handleAnalyzeClick}>
-            Start Analysis
+          <p className="action-hint">Click to discover components on the current page</p>
+          <Button onClick={handleDiscoverClick}>
+            Discover Components
           </Button>
         </div>
       </div>

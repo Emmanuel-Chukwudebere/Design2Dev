@@ -9,6 +9,11 @@ interface ErrorState {
   context: string;
 }
 
+interface PageInfo {
+  name: string;
+  nodeCount: number;
+}
+
 interface AppState {
   // Core state
   appStage: AppStage;
@@ -16,6 +21,7 @@ interface AppState {
   discoveredComponents: ComponentSpec[];
   screenSpecs: ScreenSpec[];
   exportBundle: ExportBundle | null;
+  pageInfo: PageInfo | null;
   
   // Error handling
   error: ErrorState | null;
@@ -35,6 +41,7 @@ interface AppState {
   setAnalyzing: (isAnalyzing: boolean) => void;
   setExporting: (isExporting: boolean) => void;
   setRefreshing: (isRefreshing: boolean) => void;
+  setPageInfo: (pageInfo: PageInfo) => void;
   
   // Complex actions
   refreshComponents: () => Promise<void>;
@@ -52,6 +59,7 @@ const initialState = {
   isAnalyzing: false,
   isExporting: false,
   isRefreshing: false,
+  pageInfo: null,
 };
 
 export const useStore = create<AppState>((set, get) => ({
@@ -66,6 +74,7 @@ export const useStore = create<AppState>((set, get) => ({
   setAnalyzing: (isAnalyzing) => set({ isAnalyzing }),
   setExporting: (isExporting) => set({ isExporting }),
   setRefreshing: (isRefreshing) => set({ isRefreshing }),
+  setPageInfo: (pageInfo) => set({ pageInfo }),
 
   refreshComponents: async () => {
     const { setRefreshing, setDiscoveredComponents, setError } = get();

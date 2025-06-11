@@ -46,11 +46,23 @@ function handleError(error: Error, context: string) {
   postMessage('ERROR', { message: error.message, context });
 }
 
-// Start component discovery immediately
+// SAFE initialization - don't run heavy operations immediately
 async function initializePlugin() {
   try {
-    state.discoveredComponents = await discoverComponentsOnPage();
-    postMessage('INIT_COMPLETE', { discoveredComponents: state.discoveredComponents });
+    // Send initial state without heavy processing
+    postMessage('PLUGIN_READY', { 
+      state: 'ready',
+      message: 'Plugin loaded successfully. Click "Discover Components" to start.' 
+    });
+    
+    // Optional: Do light initialization only
+    const pageInfo = {
+      name: figma.currentPage.name,
+      nodeCount: figma.currentPage.children.length
+    };
+    
+    postMessage('PAGE_INFO', pageInfo);
+    
   } catch (error) {
     handleError(error as Error, 'initialization');
   }
@@ -59,13 +71,43 @@ async function initializePlugin() {
 // Initialize plugin
 initializePlugin();
 
+console.log('Plugin initialized successfully');
+figma.notify('Plugin loaded', { timeout: 1000 });
+
 // Message handling
 figma.ui.onmessage = async (msg) => {
   try {
     switch (msg.type) {
+      case 'DISCOVER_COMPONENTS': {
+        if (state.isAnalyzing) {
+          throw new Error('Discovery already in progress');
+        }
+
+        state.isAnalyzing = true;
+        postMessage('DISCOVERY_STARTED');
+        figma.notify('Discovering components...', { timeout: 2000 });
+
+        try {
+          state.discoveredComponents = await discoverComponentsOnPage();
+          postMessage('DISCOVERY_COMPLETE', { 
+            discoveredComponents: state.discoveredComponents 
+          });
+        } catch (error) {
+          handleError(error as Error, 'component discovery');
+          postMessage('DISCOVERY_FAILED');
+        } finally {
+          state.isAnalyzing = false;
+        }
+        break;
+      }
+
       case 'ANALYZE_SCREENS': {
         if (state.isAnalyzing) {
           throw new Error('Analysis already in progress');
+        }
+
+        if (state.discoveredComponents.length === 0) {
+          throw new Error('Please discover components first before analyzing screens.');
         }
 
         const selection = figma.currentPage.selection.filter(n => n.type === 'FRAME');
@@ -74,7 +116,6 @@ figma.ui.onmessage = async (msg) => {
           throw new Error(`Please select ${MIN_SELECTION_SIZE} to ${MAX_SELECTION_SIZE} top-level frames to analyze.`);
         }
 
-        // Update selected design system
         if (msg.payload?.designSystem) {
           state.selectedDesignSystem = msg.payload.designSystem;
         }
@@ -114,17 +155,14 @@ figma.ui.onmessage = async (msg) => {
         try {
           const exportData = await generateExportBundle(finalComponents, finalScreens);
           
-          // Create a zip file
           const zip = new JSZip();
           
-          // Add component and screen specifications
           const specsFolder = zip.folder('specs');
           if (!specsFolder) throw new Error('Failed to create specs folder in zip');
           
           specsFolder.file('components.json', JSON.stringify(exportData.componentSpecs, null, 2));
           specsFolder.file('screens.json', JSON.stringify(exportData.screenSpecs, null, 2));
 
-          // Add AI prompts
           const promptsFolder = zip.folder('prompts');
           if (!promptsFolder) throw new Error('Failed to create prompts folder in zip');
           
@@ -137,7 +175,6 @@ figma.ui.onmessage = async (msg) => {
             promptsFolder.file(`${i + 1}_${prompt.componentName}.md`, content);
           });
 
-          // Add assets
           const assetsFolder = zip.folder('assets');
           if (!assetsFolder) throw new Error('Failed to create assets folder in zip');
           
@@ -157,7 +194,7 @@ figma.ui.onmessage = async (msg) => {
       }
 
       case 'HIGHLIGHT_NODE': {
-        const node = figma.getNodeById(msg.payload.nodeId);
+        const node = await figma.getNodeByIdAsync(msg.payload.nodeId);
         if (node) {
           figma.viewport.scrollAndZoomIntoView([node]);
           figma.notify(`Highlighting: ${node.name}`, { timeout: 1500 });
@@ -169,12 +206,17 @@ figma.ui.onmessage = async (msg) => {
 
       case 'REFRESH_COMPONENTS': {
         try {
+          state.isAnalyzing = true;
+          postMessage('DISCOVERY_STARTED');
+          
           state.discoveredComponents = await discoverComponentsOnPage();
           postMessage('COMPONENTS_REFRESHED', { 
             discoveredComponents: state.discoveredComponents 
           });
         } catch (error) {
           handleError(error as Error, 'component refresh');
+        } finally {
+          state.isAnalyzing = false;
         }
         break;
       }
@@ -189,7 +231,6 @@ figma.ui.onmessage = async (msg) => {
 
 // Cleanup on plugin close
 figma.on('close', () => {
-  // Clear any pending operations
   state.isAnalyzing = false;
   state.isExporting = false;
   state.lastError = null;

@@ -26,6 +26,31 @@ function App() {
       const { type, payload } = event.data.pluginMessage;
       
       switch (type) {
+        case 'PLUGIN_READY':
+          store.setLoading(false);
+          break;
+
+        case 'PAGE_INFO':
+          store.setPageInfo(payload);
+          break;
+
+        case 'DISCOVERY_STARTED':
+          store.setLoading(true);
+          break;
+
+        case 'DISCOVERY_COMPLETE':
+          store.setDiscoveredComponents(payload.discoveredComponents);
+          store.setLoading(false);
+          break;
+
+        case 'DISCOVERY_FAILED':
+          store.setLoading(false);
+          store.setError({
+            message: 'Failed to discover components',
+            context: 'discovery'
+          });
+          break;
+
         case 'INIT_COMPLETE':
           store.setDiscoveredComponents(payload.discoveredComponents);
           store.setLoading(false);
