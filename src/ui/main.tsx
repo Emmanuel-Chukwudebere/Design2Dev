@@ -1,7 +1,7 @@
 // src/ui/main.tsx
 import React, { useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { useStore } from './lib/state';
+import { useStore } from './store';
 import { postToFigma } from './lib/utils';
 import { WelcomeScreen } from './features/WelcomeScreen';
 import { ReviewScreen } from './features/ReviewScreen';
@@ -34,28 +34,6 @@ function App() {
           store.setPageInfo(payload);
           break;
 
-        case 'DISCOVERY_STARTED':
-          store.setLoading(true);
-          break;
-
-        case 'DISCOVERY_COMPLETE':
-          store.setDiscoveredComponents(payload.discoveredComponents);
-          store.setLoading(false);
-          break;
-
-        case 'DISCOVERY_FAILED':
-          store.setLoading(false);
-          store.setError({
-            message: 'Failed to discover components',
-            context: 'discovery'
-          });
-          break;
-
-        case 'INIT_COMPLETE':
-          store.setDiscoveredComponents(payload.discoveredComponents);
-          store.setLoading(false);
-          break;
-
         case 'ANALYSIS_STARTED':
           store.setAnalyzing(true);
           store.setStage('analyzing');
@@ -81,7 +59,6 @@ function App() {
           break;
 
         case 'EXPORT_COMPLETE':
-          store.setExportBundle(payload.exportBundle);
           store.setExporting(false);
           store.setStage('complete');
           break;
@@ -92,11 +69,6 @@ function App() {
             message: 'Failed to generate export bundle',
             context: 'export'
           });
-          break;
-
-        case 'COMPONENTS_REFRESHED':
-          store.setDiscoveredComponents(payload.discoveredComponents);
-          store.setRefreshing(false);
           break;
 
         case 'ERROR':
@@ -117,7 +89,7 @@ function App() {
   }, []);
 
   if (store.isLoading) {
-    return <LoadingIndicator text="Discovering components..." />;
+    return <LoadingIndicator text="Initializing..." />;
   }
 
   if (store.error) {
