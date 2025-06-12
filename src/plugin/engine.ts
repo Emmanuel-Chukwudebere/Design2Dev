@@ -1,5 +1,5 @@
 // src/plugin/engine.ts
-import { StyleProperties, ComponentSpec, ScreenSpec, ComponentInstance, ExportBundle, AIPrompt, IndividualCorners } from '../shared/types';
+import { StyleProperties, ComponentSpec, ScreenSpec, ComponentInstance, ExportBundle, AIPrompt, IndividualCorners, Effect, SupportedDesignSystem, Color, Gradient, Shadow } from '../shared/types';
 
 // Constants for performance tuning
 const MIN_COMPONENT_INSTANCES = 2;
@@ -11,90 +11,105 @@ const structuralHashCache = new Map<string, string>();
 
 // Utility function to safely extract style properties
 function extractStyleProperties(node: SceneNode): StyleProperties {
-  try {
-    let fills: StyleProperties['fills'] = [];
-    if ('fills' in node && Array.isArray(node.fills)) {
-      fills = node.fills.map(paint => {
-        if (paint.type === 'SOLID') {
-          return { r: paint.color.r, g: paint.color.g, b: paint.color.b, a: paint.opacity ?? 1 };
-        }
-        if (paint.type === 'GRADIENT_LINEAR' || paint.type === 'GRADIENT_RADIAL') {
-          return { 
-            type: paint.type, 
-            stops: paint.gradientStops.map((s: { color: RGB; position: number }) => ({ 
-              color: s.color, 
-              position: s.position 
-            })) 
-          };
-        }
-        return null;
-      }).filter(Boolean) as StyleProperties['fills'];
-    }
+  const style: StyleProperties = {};
 
-    let effects: StyleProperties['effects'] = [];
-    if ('effects' in node && Array.isArray(node.effects)) {
-      effects = node.effects.map(effect => {
-        if ((effect.type === 'DROP_SHADOW' || effect.type === 'INNER_SHADOW') && effect.visible) {
-          return { 
-            type: effect.type, 
-            color: effect.color, 
-            offset: effect.offset, 
-            blur: effect.radius, 
-            spread: effect.spread ?? 0 
-          };
-        }
-        return null;
-      }).filter(Boolean) as StyleProperties['effects'];
-    }
-    
-    const textNode = node.type === 'TEXT' ? node : null;
-
-    return {
-      fills,
-      strokes: 'strokes' in node ? (node.strokes.map(p => (p.type === 'SOLID' ? { ...p.color, a: p.opacity ?? 1 } : null)).filter(Boolean) as any[]) : [],
-      strokeWeight: 'strokeWeight' in node ? node.strokeWeight as number : 0,
-      cornerRadius: 'cornerRadius' in node ? node.cornerRadius as (number | IndividualCorners) : 0,
-      opacity: 'opacity' in node ? node.opacity as number : 1,
-      effects,
-      layoutMode: 'layoutMode' in node ? node.layoutMode : 'NONE',
-      primaryAlign: 'primaryAxisAlignItems' in node ? node.primaryAxisAlignItems : 'MIN',
-      counterAlign: 'counterAxisAlignItems' in node ? node.counterAxisAlignItems : 'MIN',
-      padding: {
-        top: 'paddingTop' in node ? node.paddingTop : 0,
-        right: 'paddingRight' in node ? node.paddingRight : 0,
-        bottom: 'paddingBottom' in node ? node.paddingBottom : 0,
-        left: 'paddingLeft' in node ? node.paddingLeft : 0,
-      },
-      itemSpacing: 'itemSpacing' in node ? node.itemSpacing : 0,
-      fontFamily: textNode && textNode.fontName !== figma.mixed ? textNode.fontName.family : null,
-      fontWeight: textNode && textNode.fontWeight !== figma.mixed ? (textNode.fontWeight as number) : null,
-      fontSize: textNode && textNode.fontSize !== figma.mixed ? (textNode.fontSize as number) : null,
-      lineHeight: textNode && textNode.lineHeight !== figma.mixed ? (textNode.lineHeight as any).value : null,
-      letterSpacing: textNode && textNode.letterSpacing !== figma.mixed ? (textNode.letterSpacing as any).value : null,
-      textAlign: textNode && 'textAlignHorizontal' in textNode ? textNode.textAlignHorizontal : 'LEFT',
+  if ('layoutMode' in node) {
+    style.layoutMode = node.layoutMode;
+    style.primaryAlign = node.primaryAxisAlignItems;
+    style.counterAlign = node.counterAxisAlignItems;
+    style.padding = {
+      top: node.paddingTop,
+      right: node.paddingRight,
+      bottom: node.paddingBottom,
+      left: node.paddingLeft
     };
-  } catch (error) {
-    console.error('Error extracting style properties:', error);
-    return {
-      fills: [],
-      strokes: [],
-      strokeWeight: 0,
-      cornerRadius: 0,
-      opacity: 1,
-      effects: [],
-      layoutMode: 'NONE',
-      primaryAlign: 'MIN',
-      counterAlign: 'MIN',
-      padding: { top: 0, right: 0, bottom: 0, left: 0 },
-      itemSpacing: 0,
-      fontFamily: null,
-      fontWeight: null,
-      fontSize: null,
-      lineHeight: null,
-      letterSpacing: null,
-      textAlign: 'LEFT',
-    };
+    style.itemSpacing = node.itemSpacing;
   }
+
+  if ('fills' in node && Array.isArray(node.fills)) {
+    style.fills = node.fills.map((fill: Paint) => {
+      if (fill.type === 'SOLID') {
+        return {
+          r: fill.color.r,
+          g: fill.color.g,
+          b: fill.color.b,
+          a: fill.opacity
+        };
+      } else if (fill.type === 'GRADIENT_LINEAR' || fill.type === 'GRADIENT_RADIAL') {
+        return {
+          type: fill.type === 'GRADIENT_LINEAR' ? 'LINEAR' : 'RADIAL',
+          stops: fill.gradientStops.map((stop: ColorStop) => ({
+            color: {
+              r: stop.color.r,
+              g: stop.color.g,
+              b: stop.color.b,
+              a: stop.color.a
+            },
+            position: stop.position
+          }))
+        };
+      }
+      return null;
+    }).filter(Boolean) as (Color | Gradient)[];
+  }
+
+  if ('strokes' in node && Array.isArray(node.strokes)) {
+    style.strokes = node.strokes.map((stroke: Paint) => {
+      if (stroke.type === 'SOLID') {
+        return {
+          r: stroke.color.r,
+          g: stroke.color.g,
+          b: stroke.color.b,
+          a: stroke.opacity
+        };
+      }
+      return null;
+    }).filter(Boolean) as Color[];
+    style.strokeWeight = typeof node.strokeWeight === 'number' ? node.strokeWeight : 0;
+  }
+
+  if ('cornerRadius' in node) {
+    if (typeof node.cornerRadius === 'number') {
+      style.cornerRadius = node.cornerRadius;
+    } else if (node.cornerRadius !== figma.mixed && 'topLeftRadius' in node) {
+      style.cornerRadius = {
+        topLeft: node.topLeftRadius,
+        topRight: node.topRightRadius,
+        bottomLeft: node.bottomLeftRadius,
+        bottomRight: node.bottomRightRadius
+      };
+    }
+  }
+
+  if ('opacity' in node) {
+    style.opacity = node.opacity;
+  }
+
+  if ('effects' in node && Array.isArray(node.effects)) {
+    style.effects = node.effects.map((effect: Effect) => {
+      if (effect.type === 'DROP_SHADOW' || effect.type === 'INNER_SHADOW') {
+        const shadow: Shadow = {
+          type: effect.type,
+          color: {
+            r: effect.color?.r ?? 0,
+            g: effect.color?.g ?? 0,
+            b: effect.color?.b ?? 0,
+            a: effect.opacity ?? 1
+          },
+          offset: {
+            x: effect.offset?.x ?? 0,
+            y: effect.offset?.y ?? 0
+          },
+          blur: effect.radius ?? 0,
+          spread: effect.spread ?? 0
+        };
+        return shadow;
+      }
+      return null;
+    }).filter((effect): effect is Shadow => effect !== null);
+  }
+
+  return style;
 }
 
 // Fixed version of getStructuralHash function
@@ -159,11 +174,11 @@ function getStyleSignature(style: StyleProperties): string {
   const parts: string[] = [];
   const sig = (val: any) => JSON.stringify(val, Object.keys(val).sort());
 
-  style.fills.forEach(f => parts.push(`fill:${sig(f)}`));
-  style.strokes.forEach(s => parts.push(`stroke:${sig(s)}`));
+  (style.fills ?? []).forEach(f => parts.push(`fill:${sig(f)}`));
+  (style.strokes ?? []).forEach(s => parts.push(`stroke:${sig(s)}`));
   parts.push(`sw:${style.strokeWeight}`);
   parts.push(`cr:${JSON.stringify(style.cornerRadius)}`);
-  style.effects.forEach(e => parts.push(`effect:${sig(e)}`));
+  (style.effects ?? []).forEach(e => parts.push(`effect:${sig(e)}`));
   
   return parts.join('|');
 }
@@ -353,7 +368,7 @@ export async function discoverComponentsOnPage(): Promise<ComponentSpec[]> {
 // Screen analysis with error handling
 export function analyzeScreens(
   selectedScreens: readonly SceneNode[],
-  discoveredComponents: ComponentSpec[]
+  designSystem: SupportedDesignSystem
 ): ScreenSpec[] {
   try {
     const screenSpecs: ScreenSpec[] = [];
@@ -361,26 +376,67 @@ export function analyzeScreens(
     for (const screenNode of selectedScreens) {
       if (screenNode.type !== 'FRAME') continue;
 
-      const componentInstances: ComponentInstance[] = [];
+      const elements: ScreenSpec['elements'] = [];
       const dependencies = new Set<string>();
       const permissions = new Set<string>();
+      const navigationScreens = new Set<string>();
 
-      const allComponentSpecs = discoveredComponents.flatMap(c => [c, ...c.variants]);
-
+      // Analyze all nodes in the screen
       screenNode.findAll((node) => {
-        for (const spec of allComponentSpecs) {
-          if (node.id === spec.id.replace('comp-', '')) {
-            componentInstances.push({
-              specId: spec.id,
-              position: { x: node.x, y: node.y },
-              instanceProps: {
-                text: 'children' in node ? node.children.find(c => c.type === 'TEXT')?.name : undefined
-              }
-            });
-            return false;
-          }
+        // Extract element information
+        const element: ScreenSpec['elements'][0] = {
+          id: node.id,
+          name: node.name,
+          type: node.type.toLowerCase() as ScreenSpec['elements'][0]['type'],
+          position: { x: node.x, y: node.y },
+          dimensions: { width: node.width, height: node.height },
+          styling: extractStyleProperties(node),
+        };
+
+        // Add content for text nodes
+        if (node.type === 'TEXT') {
+          element.content = node.characters;
         }
 
+        // Add children IDs for container nodes
+        if ('children' in node) {
+          element.children = node.children.map(child => child.id);
+        }
+
+        // Add auto-layout information
+        if ('layoutMode' in node && node.layoutMode !== 'NONE') {
+          element.autoLayout = {
+            direction: node.layoutMode,
+            alignment: node.primaryAxisAlignItems,
+            spacing: node.itemSpacing,
+            padding: {
+              top: node.paddingTop,
+              right: node.paddingRight,
+              bottom: node.paddingBottom,
+              left: node.paddingLeft
+            }
+          };
+        }
+
+        // Add effects
+        if ('effects' in node && Array.isArray((node as any).effects) && (node as any).effects.length > 0) {
+          element.effects = ((node as any).effects).map((effect: any) => ({
+            type: effect.type,
+            properties: effect
+          }));
+        }
+
+        // Add constraints
+        if ('constraints' in node) {
+          element.constraints = {
+            horizontal: node.constraints.horizontal,
+            vertical: node.constraints.vertical
+          };
+        }
+
+        elements.push(element);
+
+        // Check for dependencies and permissions
         const nodeName = node.name.toLowerCase();
         if (nodeName.includes('map')) dependencies.add('react-native-maps');
         if (nodeName.includes('camera') || nodeName.includes('avatar-upload')) {
@@ -388,6 +444,21 @@ export function analyzeScreens(
           permissions.add('ios.permission.NSCameraUsageDescription');
         }
         if (nodeName.includes('location')) permissions.add('android.permission.ACCESS_FINE_LOCATION');
+
+        // Check for navigation patterns
+        if (nodeName.includes('nav') || nodeName.includes('menu')) {
+          const navType = nodeName.includes('tab') ? 'tab' : 
+                         nodeName.includes('drawer') ? 'drawer' : 'stack';
+          // Look for connected screens
+          if ('findAll' in node && typeof node.findAll === 'function') {
+            node.findAll((n: SceneNode) => {
+              if (n.type === 'FRAME' && n !== screenNode) {
+                navigationScreens.add(n.name);
+              }
+              return false;
+            });
+          }
+        }
 
         return false;
       });
@@ -397,10 +468,19 @@ export function analyzeScreens(
         name: screenNode.name,
         dimensions: { width: screenNode.width, height: screenNode.height },
         layout: extractStyleProperties(screenNode),
-        componentInstances,
+        designSystem,
+        elements,
         dependencies: Array.from(dependencies),
         permissions: Array.from(permissions),
       };
+
+      // Add navigation if found
+      if (navigationScreens.size > 0) {
+        spec.navigation = {
+          type: 'stack', // Default to stack, can be overridden by UI
+          screens: Array.from(navigationScreens)
+        };
+      }
 
       screenSpecs.push(spec);
     }
@@ -415,87 +495,53 @@ export function analyzeScreens(
 
 // Export bundle generation with timeout and error handling
 export async function generateExportBundle(
-  finalComponents: ComponentSpec[],
-  finalScreens: ScreenSpec[]
+  screenSpecs: ScreenSpec[],
+  designSystem: SupportedDesignSystem
 ): Promise<ExportBundle> {
   try {
     const aiPrompts: AIPrompt[] = [];
     const assets: ExportBundle['assets'] = [];
 
-    const allComponents = finalComponents.flatMap(c => [c, ...c.variants]);
+    // Process screens
+    for (const screen of screenSpecs) {
+      aiPrompts.push({
+        screenName: screen.name,
+        designSystem,
+        specifications: JSON.stringify(screen, null, 2),
+        accessibilityRequirements: JSON.stringify({
+          elements: screen.elements.map(el => ({
+            id: el.id,
+            name: el.name,
+            type: el.type,
+            role: el.type === 'text' ? 'text' : 
+                  el.type === 'image' ? 'image' : 
+                  el.type === 'vector' ? 'image' : 'group'
+          }))
+        }, null, 2)
+      });
 
-    // Process components in batches
-    await processBatch(
-      allComponents,
-      async (component) => {
-        aiPrompts.push({
-          componentName: component.name,
-          designSystem: component.mapping.designSystem,
-          specifications: JSON.stringify(component, null, 2),
-          accessibilityRequirements: JSON.stringify(component.accessibility, null, 2),
-        });
-
-        const node = figma.getNodeById(component.id.replace('comp-', ''));
-        if (node && 'findAll' in node) {
-          const exportableNodes = node.findAll(n => 
-            n.exportSettings.length > 0 || 
-            ['VECTOR', 'IMAGE', 'SHAPE_WITH_TEXT', 'RECTANGLE', 'ELLIPSE'].includes(n.type)
-          );
-
-          // Process exports with timeout
-          const exportPromises = exportableNodes.map(async (exportNode) => {
-            try {
-              const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Export timeout')), EXPORT_TIMEOUT)
-              );
-
-              // Export SVG
-              const svgData = await Promise.race([
-                exportNode.exportAsync({ format: 'SVG' }),
-                timeoutPromise
-              ]);
-              assets.push({ 
-                name: `${exportNode.name.replace(/[^a-zA-Z0-9]/g, '_')}.svg`, 
-                data: svgData as Uint8Array
-              });
-
-              // Export PNG at different resolutions
-              const resolutions = [
-                { scale: 1, suffix: '' },
-                { scale: 2, suffix: '@2x' },
-                { scale: 3, suffix: '@3x' }
-              ];
-
-              for (const { scale, suffix } of resolutions) {
-                const pngData = await Promise.race([
-                  exportNode.exportAsync({ 
-                    format: 'PNG',
-                    constraint: { type: 'SCALE', value: scale }
-                  }),
-                  timeoutPromise
-                ]);
-                assets.push({ 
-                  name: `${exportNode.name.replace(/[^a-zA-Z0-9]/g, '_')}${suffix}.png`, 
-                  data: pngData as Uint8Array
-                });
-              }
-            } catch (e) {
-              console.error(`Could not export node ${exportNode.name}:`, e);
-              figma.notify(`Failed to export ${exportNode.name}. Skipping...`, { timeout: 2000 });
-            }
-          });
-
-          await Promise.all(exportPromises);
+      // Extract assets from elements
+      for (const element of screen.elements) {
+        if (element.type === 'image' || element.type === 'vector') {
+          const node = figma.getNodeById(element.id);
+          if (node && 'exportAsync' in node) {
+            const data = await node.exportAsync({
+              format: 'PNG',
+              constraint: { type: 'SCALE', value: 2 }
+            });
+            assets.push({
+              name: `${element.name}.png`,
+              data
+            });
+          }
         }
-      },
-      MAX_PARALLEL_EXPORTS
-    );
+      }
+    }
 
     return {
-      componentSpecs: finalComponents,
-      screenSpecs: finalScreens,
+      screenSpecs,
       aiPrompts,
-      assets,
+      assets
     };
   } catch (error) {
     console.error('Error generating export bundle:', error);

@@ -27,25 +27,25 @@ export type IndividualCorners = {
 }
 
 // Represents all possible styling for a node
-export type StyleProperties = {
-  fills: (Color | Gradient)[];
-  strokes: Color[];
-  strokeWeight: number;
-  cornerRadius: number | IndividualCorners; // For individual corner radii
-  opacity: number;
-  effects: Shadow[];
-  layoutMode: 'NONE' | 'HORIZONTAL' | 'VERTICAL';
-  primaryAlign: 'MIN' | 'MAX' | 'CENTER' | 'SPACE_BETWEEN';
-  counterAlign: 'MIN' | 'MAX' | 'CENTER' | 'BASELINE';
-  padding: { top: number; right: number; bottom: number; left: number };
-  itemSpacing: number; // Corresponds to `gap`
-  fontFamily: string | null;
-  fontWeight: number | null;
-  fontSize: number | null;
-  lineHeight: number | null;
-  letterSpacing: number | null;
-  textAlign: 'LEFT' | 'CENTER' | 'RIGHT' | 'JUSTIFIED';
-};
+export interface StyleProperties {
+  fills?: (Color | Gradient)[];
+  strokes?: Color[];
+  strokeWeight?: number;
+  cornerRadius?: number | IndividualCorners;
+  opacity?: number;
+  effects?: Shadow[];
+  layoutMode?: 'HORIZONTAL' | 'VERTICAL' | 'NONE';
+  primaryAlign?: 'MIN' | 'MAX' | 'CENTER' | 'SPACE_BETWEEN';
+  counterAlign?: 'MIN' | 'MAX' | 'CENTER' | 'BASELINE';
+  padding?: { top: number; right: number; bottom: number; left: number };
+  itemSpacing?: number;
+  fontFamily?: string | null;
+  fontWeight?: number | null;
+  fontSize?: number | null;
+  lineHeight?: number | null;
+  letterSpacing?: number | null;
+  textAlign?: 'LEFT' | 'CENTER' | 'RIGHT' | 'JUSTIFIED';
+}
 
 // --- Design System & Components ---
 export type SupportedDesignSystem =
@@ -92,24 +92,53 @@ export interface ScreenSpec {
   name: string;
   dimensions: Dimensions;
   layout: StyleProperties;
-  componentInstances: ComponentInstance[];
+  designSystem: SupportedDesignSystem;
+  elements: {
+    id: string;
+    name: string;
+    type: 'frame' | 'text' | 'image' | 'vector' | 'group';
+    position: { x: number; y: number };
+    dimensions: Dimensions;
+    styling: StyleProperties;
+    content?: string;
+    children?: string[];
+    autoLayout?: {
+      direction: 'HORIZONTAL' | 'VERTICAL';
+      alignment: string;
+      spacing: number;
+      padding: { top: number; right: number; bottom: number; left: number };
+    };
+    effects?: {
+      type: 'DROP_SHADOW' | 'INNER_SHADOW' | 'LAYER_BLUR' | 'BACKGROUND_BLUR';
+      properties: Record<string, any>;
+    }[];
+    constraints?: {
+      horizontal: 'MIN' | 'MAX' | 'CENTER' | 'SCALE' | 'STRETCH';
+      vertical: 'MIN' | 'MAX' | 'CENTER' | 'SCALE' | 'STRETCH';
+    };
+  }[];
+  navigation?: {
+    type: 'stack' | 'tab' | 'drawer';
+    screens: string[];
+  };
   dependencies: string[];
   permissions: string[];
 }
 
 export interface AIPrompt {
-  componentName: string;
+  screenName: string;
   designSystem: SupportedDesignSystem;
   specifications: string;
   accessibilityRequirements: string;
 }
 
 export interface ExportBundle {
-  componentSpecs: ComponentSpec[];
   screenSpecs: ScreenSpec[];
   aiPrompts: AIPrompt[];
-  assets: { name: string; data: Uint8Array }[];
-  zipFile?: Uint8Array; // This property is now correctly defined
+  assets: {
+    name: string;
+    data: Uint8Array;
+  }[];
 }
 
 export interface DesignSystem {
@@ -117,4 +146,14 @@ export interface DesignSystem {
   description: string;
   components: Record<string, any>;
   dependencies: string[];
+}
+
+export interface Effect {
+  type: 'DROP_SHADOW' | 'INNER_SHADOW' | 'LAYER_BLUR' | 'BACKGROUND_BLUR';
+  visible: boolean;
+  color?: RGB;
+  offset?: { x: number; y: number };
+  radius?: number;
+  spread?: number;
+  opacity?: number;
 }

@@ -66,11 +66,14 @@ function calculateStyleSimilarity(component: ComponentSpec, targetComponent: str
   }
 
   // Check spacing properties
-  const hasPadding = Object.values(styling.padding).some(v => v > 0);
-  if (hasPadding) {
-    similarity += STYLE_WEIGHTS.padding;
+  if (styling.padding && typeof styling.padding === 'object') {
+    const paddingValues = Object.values(styling.padding);
+    if (paddingValues.some(v => typeof v === 'number' && v > 0)) {
+      similarity += STYLE_WEIGHTS.padding;
+    }
   }
-  if (styling.itemSpacing > 0) {
+
+  if (typeof styling.itemSpacing === 'number' && styling.itemSpacing > 0) {
     similarity += STYLE_WEIGHTS.itemSpacing;
   }
 

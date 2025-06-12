@@ -8,22 +8,22 @@ import { SupportedDesignSystem } from '../../shared/types';
 
 export function WelcomeScreen() {
   const { setStage, pageInfo } = useStore();
-  const [selectedSystem, setSelectedSystem] = useState<SupportedDesignSystem>('React Native Paper');
-
-  const handleDiscoverClick = () => {
-    postToFigma('DISCOVER_COMPONENTS');
-  };
+  const [selectedSystem, setSelectedSystem] = useState<SupportedDesignSystem>('Custom');
 
   const handleDesignSystemChange = (system: SupportedDesignSystem) => {
     setSelectedSystem(system);
   };
 
+  const handleAnalyzeClick = () => {
+    postToFigma('ANALYZE_SCREENS', { designSystem: selectedSystem });
+  };
+
   return (
-    <div className="section">
+    <div className="welcome-screen">
       <div className="welcome-content">
-        <h2 className="welcome-title">Welcome to Design2Dev</h2>
+        <h1 className="welcome-title">Design2Dev</h1>
         <p className="welcome-description">
-          Transform your Figma designs into production-ready React Native code in minutes.
+          Extract comprehensive specifications from your Figma screens and map them to your chosen design system.
         </p>
 
         {pageInfo && (
@@ -32,36 +32,19 @@ export function WelcomeScreen() {
           </div>
         )}
 
-        <div className="feature-list">
-          <div className="feature-item">
-            <div className="feature-icon">🎯</div>
-            <div className="feature-text">
-              <h3>Smart Component Detection</h3>
-              <p>Automatically identifies reusable components and their variants</p>
-            </div>
-          </div>
-
-          <div className="feature-item">
-            <div className="feature-icon">🎨</div>
-            <div className="feature-text">
-              <h3>Design System Integration</h3>
-              <p>Seamlessly maps to popular React Native UI libraries</p>
-            </div>
-          </div>
-
-          <div className="feature-item">
-            <div className="feature-icon">⚡</div>
-            <div className="feature-text">
-              <h3>Instant Code Generation</h3>
-              <p>Get production-ready React Native components instantly</p>
-            </div>
-          </div>
+        <div className="page-info">
+          <div className="info-title">Selection Requirements</div>
+          <ul className="info-list">
+            <li>Select 1-8 frames to analyze</li>
+            <li>Only top-level frames are supported</li>
+            <li>Make sure frames are properly named</li>
+          </ul>
         </div>
 
         <div className="design-system-section">
           <div className="section-title">Choose Your Design System</div>
           <div className="design-system-selector">
-            {Object.values(designSystems).map((system: import('../../shared/types').DesignSystem) => (
+            {Object.values(designSystems).map((system) => (
               <label 
                 key={system.name}
                 className={`design-system-option ${selectedSystem === system.name ? 'selected' : ''}`}
@@ -71,7 +54,7 @@ export function WelcomeScreen() {
                   name="designSystem" 
                   value={system.name}
                   checked={selectedSystem === system.name}
-                  onChange={() => handleDesignSystemChange(system.name as import('../../shared/types').SupportedDesignSystem)}
+                  onChange={() => handleDesignSystemChange(system.name as SupportedDesignSystem)}
                 />
                 <div className="design-system-info">
                   <div className="design-system-name">{system.name}</div>
@@ -83,9 +66,9 @@ export function WelcomeScreen() {
         </div>
 
         <div className="action-section">
-          <p className="action-hint">Click to discover components on the current page</p>
-          <Button onClick={handleDiscoverClick}>
-            Discover Components
+          <p className="action-hint">Select frames and click to analyze screens</p>
+          <Button onClick={handleAnalyzeClick}>
+            Analyze Screens
           </Button>
         </div>
       </div>
