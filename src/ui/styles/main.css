@@ -81,10 +81,14 @@ body {
   }
 }
 
-/* Error screen */
-.error-content {
-  max-width: 400px;
+/* Error Screen */
+.error-screen {
+  max-width: 600px;
   margin: 0 auto;
+  padding: 24px;
+}
+
+.error-content {
   text-align: center;
 }
 
@@ -97,6 +101,13 @@ body {
   font-size: 20px;
   font-weight: 600;
   margin: 0 0 16px;
+}
+
+.error-card {
+  background-color: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .error-message {
@@ -112,23 +123,28 @@ body {
 }
 
 .error-actions {
-  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
 }
 
 /* Welcome screen */
 .welcome-screen {
+  max-width: 600px;
+  margin: 0 auto;
   padding: 24px;
 }
 
 .welcome-content {
-  max-width: 400px;
-  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .welcome-title {
   font-size: 24px;
   font-weight: 600;
-  margin: 0 0 8px;
+  margin: 0;
   text-align: center;
 }
 
@@ -136,23 +152,19 @@ body {
   font-size: 14px;
   color: var(--secondary-color);
   text-align: center;
-  margin: 0 0 24px;
+  margin: 0;
 }
 
 .page-info {
-  text-align: left;
-  margin-bottom: 16px;
-  padding: 12px;
   background-color: var(--background-color);
   border-radius: 8px;
-  font-size: 14px;
-  color: var(--secondary-color);
+  padding: 16px;
+  margin: 8px 0;
 }
 
 .info-title {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
-  color: var(--text-color);
   margin-bottom: 8px;
 }
 
@@ -162,11 +174,9 @@ body {
 }
 
 .info-list li {
-  margin-bottom: 4px;
-}
-
-.info-list li:last-child {
-  margin-bottom: 0;
+  margin: 4px 0;
+  font-size: 14px;
+  color: var(--text-color);
 }
 
 .feature-list {
@@ -204,18 +214,18 @@ body {
 .section-title {
   font-size: 16px;
   font-weight: 600;
-  margin: 0 0 12px;
+  margin-bottom: 16px;
 }
 
 .design-system-selector {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .design-system-option {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   padding: 12px;
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -229,11 +239,11 @@ body {
 
 .design-system-option.selected {
   border-color: var(--primary-color);
-  background-color: var(--background-color);
+  background-color: rgba(0, 122, 255, 0.05);
 }
 
-.design-system-option input {
-  margin-right: 12px;
+.design-system-option input[type="radio"] {
+  margin: 4px 12px 0 0;
 }
 
 .design-system-info {
@@ -241,42 +251,85 @@ body {
 }
 
 .design-system-name {
-  font-size: 14px;
   font-weight: 500;
+  margin-bottom: 4px;
 }
 
 .design-system-desc {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--secondary-color);
 }
 
-/* Review screen */
+/* Export Screen */
+.export-screen {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.export-content {
+  background-color: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.export-list {
+  margin: 16px 0;
+  padding-left: 24px;
+}
+
+.export-list li {
+  margin: 8px 0;
+  color: var(--text-color);
+}
+
+.export-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+/* Review Screen */
 .review-screen {
   padding: 24px;
 }
 
 .tabs {
   display: flex;
-  gap: 16px;
+  gap: 8px;
   margin-bottom: 24px;
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 8px;
 }
 
 .tab {
-  background: none;
-  border: none;
   padding: 8px 16px;
-  font-size: 14px;
-  font-weight: 500;
+  border: none;
+  background: none;
   color: var(--secondary-color);
   cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
   transition: all 0.2s ease;
+}
+
+.tab:hover {
+  background-color: var(--background-color);
 }
 
 .tab.active {
   color: var(--primary-color);
-  border-bottom: 2px solid var(--primary-color);
+  background-color: rgba(0, 122, 255, 0.1);
+}
+
+.result-content {
+  display: none;
+}
+
+.result-content.active {
+  display: block;
 }
 
 .screen-list {
@@ -286,62 +339,61 @@ body {
 }
 
 .screen-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 16px;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
   background-color: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .screen-info {
-  flex: 1;
+  margin-bottom: 16px;
 }
 
 .screen-name {
   font-size: 16px;
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .screen-details {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-wrap: wrap;
+  gap: 16px;
   margin-bottom: 12px;
 }
 
 .detail-item {
   display: flex;
+  align-items: center;
   gap: 8px;
-  font-size: 14px;
 }
 
 .detail-label {
   color: var(--secondary-color);
-  min-width: 80px;
+  font-size: 14px;
 }
 
 .detail-value {
+  font-size: 14px;
   font-weight: 500;
 }
 
 .screen-dependencies,
 .screen-permissions {
-  font-size: 12px;
-  color: var(--secondary-color);
+  font-size: 14px;
   margin-top: 8px;
 }
 
 .dependencies-label,
 .permissions-label {
-  font-weight: 500;
-  margin-right: 4px;
+  color: var(--secondary-color);
+  margin-right: 8px;
 }
 
 .screen-actions {
-  margin-left: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 /* Export section */
@@ -373,30 +425,30 @@ button {
   align-items: center;
   justify-content: center;
   padding: 8px 16px;
+  border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
-  border-radius: 6px;
-  border: none;
+  cursor: pointer;
   transition: all 0.2s ease;
+  border: none;
 }
 
-.button.primary {
+.button-primary {
   background-color: var(--primary-color);
   color: white;
 }
 
-.button.primary:hover {
+.button-primary:hover {
   background-color: #0066CC;
 }
 
-.button.secondary {
-  background-color: white;
+.button-secondary {
+  background-color: var(--background-color);
   color: var(--text-color);
-  border: 1px solid var(--border-color);
 }
 
-.button.secondary:hover {
-  background-color: var(--background-color);
+.button-secondary:hover {
+  background-color: #E5E7EB;
 }
 
 /* Loading states */
@@ -465,4 +517,16 @@ button {
 .export-button {
   margin-top: 16px;
   width: 100%;
+}
+
+/* Action Section */
+.action-section {
+  text-align: center;
+  margin-top: 24px;
+}
+
+.action-hint {
+  font-size: 14px;
+  color: var(--secondary-color);
+  margin-bottom: 16px;
 } 

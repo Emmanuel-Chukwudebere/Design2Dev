@@ -27,7 +27,7 @@ interface AppState {
   isExporting: boolean;
 
   // Actions
-  setStage: (stage: AppState['appStage']) => void;
+  setAppStage: (stage: AppState['appStage']) => void;
   setLoading: (loading: boolean) => void;
   setScreenSpecs: (specs: ScreenSpec[]) => void;
   setDesignSystem: (system: SupportedDesignSystem) => void;
@@ -38,22 +38,25 @@ interface AppState {
   clearError: () => void;
 }
 
-export const useStore = create<AppState>((set) => ({
-  // Initial state
-  appStage: 'welcome',
+const initialState = {
+  appStage: 'welcome' as const,
   isLoading: true,
   screenSpecs: [],
-  designSystem: 'Custom',
+  designSystem: 'Custom' as SupportedDesignSystem,
   pageInfo: {
     name: '',
     nodeCount: 0
   },
   error: null,
   isAnalyzing: false,
-  isExporting: false,
+  isExporting: false
+};
+
+export const useStore = create<AppState>((set) => ({
+  ...initialState,
 
   // Actions
-  setStage: (stage) => set({ appStage: stage }),
+  setAppStage: (stage) => set({ appStage: stage }),
   setLoading: (loading) => set({ isLoading: loading }),
   setScreenSpecs: (specs) => set({ screenSpecs: specs }),
   setDesignSystem: (system) => set({ designSystem: system }),

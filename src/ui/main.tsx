@@ -36,13 +36,13 @@ function App() {
 
         case 'ANALYSIS_STARTED':
           store.setAnalyzing(true);
-          store.setStage('analyzing');
+          store.setAppStage('analyzing');
           break;
 
         case 'ANALYSIS_COMPLETE':
           store.setScreenSpecs(payload.screenSpecs);
           store.setAnalyzing(false);
-          store.setStage('review');
+          store.setAppStage('review');
           break;
 
         case 'ANALYSIS_FAILED':
@@ -55,12 +55,12 @@ function App() {
 
         case 'EXPORT_STARTED':
           store.setExporting(true);
-          store.setStage('exporting');
+          store.setAppStage('exporting');
           break;
 
         case 'EXPORT_COMPLETE':
           store.setExporting(false);
-          store.setStage('complete');
+          store.setAppStage('complete');
           break;
 
         case 'EXPORT_FAILED':

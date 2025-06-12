@@ -1,17 +1,18 @@
 // src/ui/features/WelcomeScreen.tsx
 import React, { useState } from 'react';
-import { useStore } from '../lib/state';
+import { useStore } from '../store';
 import { postToFigma } from '../lib/utils';
 import { Button } from '../components/Button';
 import { designSystems } from '../../plugin/systems';
 import { SupportedDesignSystem } from '../../shared/types';
 
 export function WelcomeScreen() {
-  const { setStage, pageInfo } = useStore();
+  const { setAppStage, setDesignSystem, pageInfo } = useStore();
   const [selectedSystem, setSelectedSystem] = useState<SupportedDesignSystem>('Custom');
 
   const handleDesignSystemChange = (system: SupportedDesignSystem) => {
     setSelectedSystem(system);
+    setDesignSystem(system);
   };
 
   const handleAnalyzeClick = () => {

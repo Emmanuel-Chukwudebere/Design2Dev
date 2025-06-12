@@ -32,6 +32,13 @@ figma.showUI(__html__, {
   height: PLUGIN_UI_HEIGHT
 });
 
+// Send initial state
+postMessage('PLUGIN_READY');
+postMessage('PAGE_INFO', {
+  name: figma.currentPage.name,
+  nodeCount: figma.currentPage.children.length
+});
+
 // Utility functions
 function postMessage(type: string, payload?: any) {
   figma.ui.postMessage({ type, payload });

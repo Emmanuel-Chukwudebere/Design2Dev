@@ -1,11 +1,11 @@
 // src/ui/features/ReviewScreen.tsx
 import React, { useState } from 'react';
-import { useStore } from '../lib/state';
+import { useStore } from '../store';
 import { postToFigma } from '../lib/utils';
 import { Button } from '../components/Button';
 
 export function ReviewScreen() {
-  const { screenSpecs, setStage } = useStore();
+  const { screenSpecs, setAppStage } = useStore();
   const [activeTab, setActiveTab] = useState<'screens' | 'export'>('screens');
 
   const handleExport = () => {
@@ -66,7 +66,7 @@ export function ReviewScreen() {
               </div>
               <div className="screen-actions">
                 <Button 
-                  variant="secondary" 
+                  variant="secondary"
                   onClick={() => postToFigma('HIGHLIGHT_NODE', { nodeId: screen.id.replace('screen-','') })}
                 >
                   Highlight
