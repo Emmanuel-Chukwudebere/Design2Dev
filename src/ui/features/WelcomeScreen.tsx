@@ -7,7 +7,7 @@ import { designSystems } from '../../plugin/systems';
 import { SupportedDesignSystem } from '../../shared/types';
 
 export function WelcomeScreen() {
-  const { setAppStage, setDesignSystem, pageInfo } = useStore();
+  const { setAppStage, setDesignSystem, pageInfo, setError } = useStore();
   const [selectedSystem, setSelectedSystem] = useState<SupportedDesignSystem>('Custom');
 
   const handleDesignSystemChange = (system: SupportedDesignSystem) => {
@@ -16,6 +16,14 @@ export function WelcomeScreen() {
   };
 
   const handleAnalyzeClick = () => {
+    if (!pageInfo || pageInfo.nodeCount === 0) {
+      setError({ 
+        message: 'Please select at least one frame to analyze',
+        context: 'selection'
+      });
+      return;
+    }
+    setAppStage('analyzing');
     postToFigma('ANALYZE_SCREENS', { designSystem: selectedSystem });
   };
 
@@ -68,7 +76,11 @@ export function WelcomeScreen() {
 
         <div className="action-section">
           <p className="action-hint">Select frames and click to analyze screens</p>
-          <Button onClick={handleAnalyzeClick}>
+          <Button 
+            onClick={handleAnalyzeClick}
+            className="analyze-button"
+            disabled={!pageInfo || pageInfo.nodeCount === 0}
+          >
             Analyze Screens
           </Button>
         </div>

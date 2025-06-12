@@ -33,6 +33,7 @@ figma.showUI(__html__, {
 });
 
 // Send initial state
+console.log('Sending initial state');
 postMessage('PLUGIN_READY');
 postMessage('PAGE_INFO', {
   name: figma.currentPage.name,
@@ -53,14 +54,27 @@ function handleError(error: Error, context: string) {
 
 // Message handling
 figma.ui.onmessage = async (msg) => {
+  console.log('Plugin received message:', msg);
+  
   try {
     switch (msg.type) {
+      case 'INIT': {
+        console.log('Received INIT message, sending PLUGIN_READY');
+        postMessage('PLUGIN_READY');
+        postMessage('PAGE_INFO', {
+          name: figma.currentPage.name,
+          nodeCount: figma.currentPage.children.length
+        });
+        break;
+      }
+
       case 'ANALYZE_SCREENS': {
         if (state.isAnalyzing) {
           throw new Error('Analysis already in progress');
         }
 
         const selection = figma.currentPage.selection.filter(n => n.type === 'FRAME');
+        console.log('Selected frames:', selection.length);
         
         if (selection.length < MIN_SELECTION_SIZE) {
           throw new Error(`Please select at least ${MIN_SELECTION_SIZE} frame to analyze.`);
@@ -113,8 +127,12 @@ figma.ui.onmessage = async (msg) => {
         }
         break;
       }
+
+      default:
+        console.log('Unknown message type:', msg.type);
     }
   } catch (error) {
+    console.error('Error handling message:', error);
     handleError(error as Error, 'message handling');
   }
 };

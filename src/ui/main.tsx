@@ -2,125 +2,155 @@
 import React, { useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useStore } from './store';
-import { postToFigma } from './lib/utils';
 import { WelcomeScreen } from './features/WelcomeScreen';
 import { ReviewScreen } from './features/ReviewScreen';
 import { ExportScreen } from './features/ExportScreen';
 import { ErrorScreen } from './features/ErrorScreen';
+import { postToFigma } from './lib/utils';
 import './styles/main.css';
 
-function LoadingIndicator({ text }: { text: string }) {
-  return (
-    <div className="loading-container">
-      <div className="loading-spinner"></div>
-      <div className="loading-text">{text}</div>
-    </div>
-  );
-}
-
 function App() {
-  const store = useStore();
+  const { 
+    appStage, 
+    isLoading, 
+    error,
+    setAppStage,
+    setLoading,
+    setError,
+    setPageInfo,
+    setScreenSpecs,
+    setAnalyzing,
+    clearError
+  } = useStore();
 
   useEffect(() => {
+    console.log('Setting up message listener');
+    
     const handleMessage = (event: MessageEvent) => {
-      const { type, payload } = event.data.pluginMessage;
+      console.log('Received message:', event.data);
       
-      switch (type) {
+      const { pluginMessage } = event.data;
+      if (!pluginMessage) {
+        console.log('No plugin message in event data');
+        return;
+      }
+
+      console.log('Processing message:', pluginMessage.type, pluginMessage.payload);
+
+      switch (pluginMessage.type) {
         case 'PLUGIN_READY':
-          store.setLoading(false);
+          console.log('Plugin is ready, setting loading to false');
+          setLoading(false);
           break;
 
         case 'PAGE_INFO':
-          store.setPageInfo(payload);
+          console.log('Received page info:', pluginMessage.payload);
+          setPageInfo(pluginMessage.payload);
           break;
 
         case 'ANALYSIS_STARTED':
-          store.setAnalyzing(true);
-          store.setAppStage('analyzing');
+          console.log('Analysis started');
+          setAnalyzing(true);
           break;
 
         case 'ANALYSIS_COMPLETE':
-          store.setScreenSpecs(payload.screenSpecs);
-          store.setAnalyzing(false);
-          store.setAppStage('review');
+          console.log('Analysis complete, updating stage and specs:', pluginMessage.payload);
+          setScreenSpecs(pluginMessage.payload.screenSpecs);
+          setAnalyzing(false);
+          setAppStage('review');
           break;
 
         case 'ANALYSIS_FAILED':
-          store.setAnalyzing(false);
-          store.setError({
-            message: 'Failed to analyze screens',
+          console.log('Analysis failed');
+          setAnalyzing(false);
+          setError({ 
+            message: 'Failed to analyze screens. Please try again.',
             context: 'analysis'
           });
           break;
 
-        case 'EXPORT_STARTED':
-          store.setExporting(true);
-          store.setAppStage('exporting');
-          break;
-
         case 'EXPORT_COMPLETE':
-          store.setExporting(false);
-          store.setAppStage('complete');
-          break;
-
-        case 'EXPORT_FAILED':
-          store.setExporting(false);
-          store.setError({
-            message: 'Failed to generate export bundle',
-            context: 'export'
-          });
+          console.log('Export complete, updating stage');
+          setAppStage('complete');
           break;
 
         case 'ERROR':
-          store.setError({
-            message: payload.message,
-            context: payload.context
-          });
+          console.log('Received error:', pluginMessage.payload);
+          setError(pluginMessage.payload);
           break;
       }
     };
 
     window.addEventListener('message', handleMessage);
+    console.log('Sending INIT message to Figma');
     postToFigma('INIT');
 
     return () => {
+      console.log('Cleaning up message listener');
       window.removeEventListener('message', handleMessage);
     };
   }, []);
 
-  if (store.isLoading) {
-    return <LoadingIndicator text="Initializing..." />;
+  console.log('Current app stage:', appStage, 'isLoading:', isLoading);
+
+  if (error) {
+    return <ErrorScreen error={error} onRetry={clearError} />;
   }
 
-  if (store.error) {
-    return <ErrorScreen error={store.error} onRetry={store.clearError} />;
+  if (isLoading) {
+    return (
+      <div className="loading-container">
+        <div className="spinner"></div>
+        <div className="loading-text">Initializing...</div>
+      </div>
+    );
   }
 
-  return (
-    <div className="container">
-      <div className="header">
-        <h1>Design2Dev</h1>
-        <p>Design to Code, Instantly</p>
-      </div>
-      <div className="content">
-        {store.appStage === 'welcome' && <WelcomeScreen />}
-        {store.appStage === 'analyzing' && <LoadingIndicator text="Analyzing screens..." />}
-        {store.appStage === 'review' && <ReviewScreen />}
-        {store.appStage === 'exporting' && <LoadingIndicator text="Generating bundle..." />}
-        {store.appStage === 'complete' && <ExportScreen />}
-      </div>
-    </div>
-  );
+  switch (appStage) {
+    case 'welcome':
+      return <WelcomeScreen />;
+    case 'analyzing':
+    case 'review':
+      return <ReviewScreen />;
+    case 'exporting':
+    case 'complete':
+      return <ExportScreen />;
+    default:
+      return <ErrorScreen error={{ message: 'Invalid app stage', context: 'main' }} onRetry={clearError} />;
+  }
 }
 
-// Initialize app
-const root = document.getElementById('root');
-if (!root) {
-  throw new Error('Root element not found');
+// Wait for DOM to be ready
+function initializeApp() {
+  const container = document.getElementById('root');
+  if (!container) {
+    console.error('Root element not found, retrying in 100ms...');
+    setTimeout(initializeApp, 100);
+    return;
+  }
+
+  try {
+    console.log('Initializing React app');
+    const root = createRoot(container);
+    root.render(<App />);
+  } catch (error) {
+    console.error('Failed to initialize app:', error);
+    const container = document.getElementById('root');
+    if (container) {
+      container.innerHTML = `
+        <div style="padding: 20px; text-align: center;">
+          <h2>Design2Dev</h2>
+          <p style="color: #666;">Failed to initialize app</p>
+          <p style="font-size: 12px; color: #999;">${error instanceof Error ? error.message : 'Unknown error'}</p>
+        </div>
+      `;
+    }
+  }
 }
 
-createRoot(root).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+// Start initialization
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+  initializeApp();
+}
