@@ -286,6 +286,7 @@ export interface ScreenSpec {
     type: 'stack' | 'tab' | 'drawer';
     screens: string[];
   };
+  prompt?: string;
 }
 
 export interface AIPrompt {

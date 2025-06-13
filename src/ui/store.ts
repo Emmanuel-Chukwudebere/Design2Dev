@@ -68,12 +68,13 @@ export const useStore = create<AppState>()((set, get) => ({
     try {
       await postToFigma('EXPORT_BUNDLE', { screenSpecs });
     } catch (error) {
-      set({ error: { 
-        message: error instanceof Error ? error.message : 'Export failed',
-        context: 'export'
-      }});
-    } finally {
-      set({ isExporting: false });
+      set({ 
+        isExporting: false,
+        error: { 
+          message: error instanceof Error ? error.message : 'Export failed',
+          context: 'export'
+        }
+      });
     }
   }
 }));

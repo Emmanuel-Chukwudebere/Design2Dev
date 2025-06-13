@@ -3,10 +3,6 @@ import React from 'react';
 import { Button, Typography, Box, CircularProgress } from '@mui/material';
 import { useStore } from '../store';
 import JSZip from 'jszip';
-import { analyzeScreenStructure, generatePromptWithGemini } from '../../config/gemini';
-import { ScreenSpec as FrontendScreenSpec } from '../../shared/types';
-import { ScreenSpec as GeminiScreenSpec } from '../../config/gemini';
-import type { ScreenSpec } from '../../shared/types';
 
 export function ExportScreen() {
   const { exportBundleData, isExporting, setExporting, setError } = useStore();
@@ -27,43 +23,12 @@ export function ExportScreen() {
         throw new Error('Failed to create zip folders');
       }
 
-      // Process each screen
+      // Add screen specs and prompts
       for (const screen of exportBundleData.screenSpecs) {
-        // Convert to Gemini ScreenSpec format
-        const geminiScreen: GeminiScreenSpec = {
-          screenMetadata: {
-            screenId: screen.id,
-            name: screen.name,
-            dimensions: screen.dimensions,
-            backgroundColorRef: 'colors.background',
-            tokensRef: 'sharedDesignTokens'
-          },
-          sharedDesignTokens: {},
-          components: screen.elements.map(element => ({
-            id: element.id,
-            type: element.type,
-            layout: {
-              x: element.position.x,
-              y: element.position.y,
-              width: element.dimensions.width,
-              height: element.dimensions.height
-            },
-            style: element.styling,
-            content: element.content
-          })),
-          assets: [],
-          dataModels: {}
-        };
-
-        // Analyze screen structure with Gemini
-        const analyzedScreen = await analyzeScreenStructure(geminiScreen);
-        
-        // Add screen spec to specs folder
-        specsFolder.file(`${screen.name}.json`, JSON.stringify(analyzedScreen, null, 2));
-
-        // Generate AI prompt with Gemini
-        const prompt = await generatePromptWithGemini(analyzedScreen);
-        promptsFolder.file(`${screen.name}.md`, prompt);
+        specsFolder.file(`${screen.name}.json`, JSON.stringify(screen, null, 2));
+        if (screen.prompt) {
+          promptsFolder.file(`${screen.name}.md`, screen.prompt);
+        }
       }
 
       // Add assets
