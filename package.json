@@ -8,6 +8,9 @@
         "build": "webpack --mode=production"
     },
     "dependencies": {
+        "@emotion/react": "^11.14.0",
+        "@emotion/styled": "^11.14.0",
+        "@mui/material": "^7.1.1",
         "file-saver": "^2.0.5",
         "jszip": "^3.10.1",
         "react": "^18.2.0",
@@ -18,7 +21,7 @@
         "@figma/plugin-typings": "^1.77.0",
         "@types/file-saver": "^2.0.5",
         "@types/react": "^18.3.23",
-        "@types/react-dom": "^18.2.7",
+        "@types/react-dom": "^18.3.7",
         "autoprefixer": "^10.4.16",
         "css-loader": "^6.11.0",
         "html-webpack-plugin": "^5.5.3",

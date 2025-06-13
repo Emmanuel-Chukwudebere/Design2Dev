@@ -1,5 +1,5 @@
 // src/plugin/engine.ts
-import { StyleProperties, ComponentSpec, ScreenSpec, ComponentInstance, ExportBundle, AIPrompt, IndividualCorners, Effect, SupportedDesignSystem, Color, Gradient, Shadow } from '../shared/types';
+import { StyleProperties, ComponentSpec, ScreenSpec, ComponentInstance, ExportBundle, AIPrompt, IndividualCorners, Effect, SupportedDesignSystem, Color, Gradient, Shadow, CornerRadius, InteractionState, isFontName, isLetterSpacing, isLineHeight, isTextCase, isTextDecoration, isLayoutAlign, LayoutAlign, HorizontalConstraint, VerticalConstraint, isHorizontalConstraint, isVerticalConstraint } from '../shared/types';
 
 // Constants for performance tuning
 const MIN_COMPONENT_INSTANCES = 2;
@@ -9,107 +9,329 @@ const EXPORT_TIMEOUT = 30000; // 30 seconds
 // Cache for structural hashes
 const structuralHashCache = new Map<string, string>();
 
+// Design system detection patterns
+const DESIGN_SYSTEM_PATTERNS = {
+  'React Native Paper': {
+    components: [
+      'button', 'card', 'textinput', 'checkbox', 'radio', 'switch',
+      'list', 'avatar', 'badge', 'chip', 'divider', 'fab'
+    ],
+    styles: ['elevation', 'ripple', 'paper']
+  },
+  'Material UI': {
+    components: [
+      'mui-button', 'mui-card', 'mui-textfield', 'mui-checkbox',
+      'mui-radio', 'mui-switch', 'mui-list', 'mui-avatar'
+    ],
+    styles: ['mui-elevation', 'mui-ripple']
+  },
+  'Chakra UI': {
+    components: [
+      'chakra-button', 'chakra-box', 'chakra-input', 'chakra-checkbox',
+      'chakra-radio', 'chakra-switch', 'chakra-list', 'chakra-avatar'
+    ],
+    styles: ['chakra-style', 'chakra-theme']
+  },
+  'NativeBase': {
+    components: [
+      'nb-button', 'nb-box', 'nb-input', 'nb-checkbox',
+      'nb-radio', 'nb-switch', 'nb-list', 'nb-avatar'
+    ],
+    styles: ['nb-style', 'nb-theme']
+  }
+};
+
+// Permission patterns
+const PERMISSION_PATTERNS = {
+  camera: {
+    patterns: ['camera', 'photo', 'avatar-upload', 'scan', 'qr-code'],
+    permissions: {
+      android: ['android.permission.CAMERA'],
+      ios: ['ios.permission.NSCameraUsageDescription']
+    }
+  },
+  location: {
+    patterns: ['location', 'map', 'gps', 'geolocation'],
+    permissions: {
+      android: [
+        'android.permission.ACCESS_FINE_LOCATION',
+        'android.permission.ACCESS_COARSE_LOCATION'
+      ],
+      ios: ['ios.permission.NSLocationWhenInUseUsageDescription']
+    }
+  },
+  storage: {
+    patterns: ['storage', 'file', 'download', 'upload', 'gallery'],
+    permissions: {
+      android: [
+        'android.permission.READ_EXTERNAL_STORAGE',
+        'android.permission.WRITE_EXTERNAL_STORAGE'
+      ],
+      ios: ['ios.permission.NSPhotoLibraryUsageDescription']
+    }
+  },
+  notifications: {
+    patterns: ['notification', 'push', 'alert'],
+    permissions: {
+      android: ['android.permission.POST_NOTIFICATIONS'],
+      ios: ['ios.permission.NSUserNotificationUsageDescription']
+    }
+  },
+  microphone: {
+    patterns: ['microphone', 'audio', 'voice', 'record'],
+    permissions: {
+      android: ['android.permission.RECORD_AUDIO'],
+      ios: ['ios.permission.NSMicrophoneUsageDescription']
+    }
+  }
+};
+
+// Dependency patterns
+const DEPENDENCY_PATTERNS = {
+  'react-native-maps': {
+    patterns: ['map', 'location', 'gps', 'geolocation'],
+    version: '^1.7.1'
+  },
+  'react-native-camera': {
+    patterns: ['camera', 'photo', 'scan', 'qr-code'],
+    version: '^4.2.1'
+  },
+  'react-native-image-picker': {
+    patterns: ['image-picker', 'photo', 'gallery', 'upload'],
+    version: '^5.6.0'
+  },
+  'react-native-vector-icons': {
+    patterns: ['icon', 'material-icon', 'font-awesome'],
+    version: '^10.0.0'
+  },
+  'react-native-gesture-handler': {
+    patterns: ['gesture', 'swipe', 'pinch', 'pan'],
+    version: '^2.12.0'
+  },
+  'react-native-reanimated': {
+    patterns: ['animation', 'transition', 'motion'],
+    version: '^3.3.0'
+  },
+  'react-native-safe-area-context': {
+    patterns: ['safe-area', 'notch', 'status-bar'],
+    version: '^4.6.3'
+  }
+};
+
 // Utility function to safely extract style properties
 function extractStyleProperties(node: SceneNode): StyleProperties {
-  const style: StyleProperties = {};
+  const properties: StyleProperties = {};
 
+  // Layout properties
   if ('layoutMode' in node) {
-    style.layoutMode = node.layoutMode;
-    style.primaryAlign = node.primaryAxisAlignItems;
-    style.counterAlign = node.counterAxisAlignItems;
-    style.padding = {
+    properties.layoutMode = node.layoutMode;
+    properties.primaryAlign = node.primaryAxisAlignItems;
+    properties.counterAlign = node.counterAxisAlignItems;
+    properties.padding = {
       top: node.paddingTop,
       right: node.paddingRight,
       bottom: node.paddingBottom,
       left: node.paddingLeft
     };
-    style.itemSpacing = node.itemSpacing;
+    properties.itemSpacing = node.itemSpacing;
+    if ('layoutWrap' in node) properties.layoutWrap = node.layoutWrap;
+    if (isLayoutAlign(node.layoutAlign)) {
+      properties.layoutAlign = node.layoutAlign;
+    }
+    if ('layoutGrow' in node) properties.layoutGrow = node.layoutGrow;
+    if ('layoutPositioning' in node) properties.layoutPositioning = node.layoutPositioning;
   }
 
+  // Grid layout
+  if ('layoutGrids' in node && Array.isArray(node.layoutGrids)) {
+    properties.gridLayout = node.layoutGrids.map(grid => ({
+      pattern: grid.pattern,
+      sectionSize: grid.sectionSize,
+      visible: grid.visible,
+      color: grid.color,
+      alignment: grid.alignment,
+      gutterSize: grid.gutterSize,
+      count: grid.count,
+      offset: grid.offset
+    }));
+  }
+
+  // Position and size
+  properties.position = {
+    x: node.x,
+    y: node.y
+  };
+  if ('rotation' in node && typeof node.rotation === 'number') {
+    properties.position.rotation = node.rotation;
+  }
+  if ('scaleX' in node && 'scaleY' in node && 
+      typeof node.scaleX === 'number' && typeof node.scaleY === 'number') {
+    properties.position.scale = {
+      x: node.scaleX,
+      y: node.scaleY
+    };
+  }
+
+  // Fill properties
   if ('fills' in node && Array.isArray(node.fills)) {
-    style.fills = node.fills.map((fill: Paint) => {
+    properties.fills = node.fills.map(fill => {
       if (fill.type === 'SOLID') {
         return {
-          r: fill.color.r,
-          g: fill.color.g,
-          b: fill.color.b,
-          a: fill.opacity
+          type: 'SOLID',
+          color: {
+            r: fill.color.r,
+            g: fill.color.g,
+            b: fill.color.b,
+            a: fill.opacity
+          }
         };
       } else if (fill.type === 'GRADIENT_LINEAR' || fill.type === 'GRADIENT_RADIAL') {
         return {
-          type: fill.type === 'GRADIENT_LINEAR' ? 'LINEAR' : 'RADIAL',
-          stops: fill.gradientStops.map((stop: ColorStop) => ({
-            color: {
-              r: stop.color.r,
-              g: stop.color.g,
-              b: stop.color.b,
-              a: stop.color.a
-            },
-            position: stop.position
-          }))
+          type: fill.type,
+          gradientStops: fill.gradientStops,
+          gradientTransform: fill.gradientTransform
+        };
+      } else if (fill.type === 'IMAGE') {
+        return {
+          type: 'IMAGE',
+          scaleMode: fill.scaleMode,
+          imageHash: fill.imageHash,
+          blendMode: fill.blendMode
         };
       }
-      return null;
-    }).filter(Boolean) as (Color | Gradient)[];
+      return fill;
+    });
   }
 
+  // Stroke properties
   if ('strokes' in node && Array.isArray(node.strokes)) {
-    style.strokes = node.strokes.map((stroke: Paint) => {
+    properties.strokes = node.strokes.map(stroke => {
       if (stroke.type === 'SOLID') {
         return {
-          r: stroke.color.r,
-          g: stroke.color.g,
-          b: stroke.color.b,
-          a: stroke.opacity
+          type: 'SOLID',
+          color: {
+            r: stroke.color.r,
+            g: stroke.color.g,
+            b: stroke.color.b,
+            a: stroke.opacity
+          }
         };
       }
-      return null;
-    }).filter(Boolean) as Color[];
-    style.strokeWeight = typeof node.strokeWeight === 'number' ? node.strokeWeight : 0;
+      return stroke;
+    });
+    if (typeof node.strokeWeight === 'number') {
+      properties.strokeWeight = node.strokeWeight;
+    }
+    properties.strokeAlign = node.strokeAlign;
+    if ('strokeCap' in node && typeof node.strokeCap === 'string') {
+      properties.strokeCap = node.strokeCap as StyleProperties['strokeCap'];
+    }
+    if ('strokeJoin' in node && typeof node.strokeJoin === 'string') {
+      properties.strokeJoin = node.strokeJoin as StyleProperties['strokeJoin'];
+    }
+    if ('strokeMiterLimit' in node && typeof node.strokeMiterLimit === 'number') {
+      properties.strokeMiterLimit = node.strokeMiterLimit;
+    }
+    if ('strokeDashes' in node && Array.isArray(node.strokeDashes)) {
+      properties.strokeDashes = node.strokeDashes;
+    }
   }
 
+  // Corner radius
   if ('cornerRadius' in node) {
     if (typeof node.cornerRadius === 'number') {
-      style.cornerRadius = node.cornerRadius;
-    } else if (node.cornerRadius !== figma.mixed && 'topLeftRadius' in node) {
-      style.cornerRadius = {
-        topLeft: node.topLeftRadius,
-        topRight: node.topRightRadius,
-        bottomLeft: node.bottomLeftRadius,
-        bottomRight: node.bottomRightRadius
+      properties.cornerRadius = node.cornerRadius;
+    } else if (node.cornerRadius && typeof node.cornerRadius === 'object') {
+      const radius = node.cornerRadius as CornerRadius;
+      properties.cornerRadius = {
+        topLeft: radius.topLeft,
+        topRight: radius.topRight,
+        bottomRight: radius.bottomRight,
+        bottomLeft: radius.bottomLeft
       };
     }
   }
 
-  if ('opacity' in node) {
-    style.opacity = node.opacity;
-  }
-
+  // Effects
   if ('effects' in node && Array.isArray(node.effects)) {
-    style.effects = node.effects.map((effect: Effect) => {
+    properties.effects = node.effects.map(effect => {
       if (effect.type === 'DROP_SHADOW' || effect.type === 'INNER_SHADOW') {
-        const shadow: Shadow = {
+        return {
           type: effect.type,
-          color: {
-            r: effect.color?.r ?? 0,
-            g: effect.color?.g ?? 0,
-            b: effect.color?.b ?? 0,
-            a: effect.opacity ?? 1
-          },
-          offset: {
-            x: effect.offset?.x ?? 0,
-            y: effect.offset?.y ?? 0
-          },
-          blur: effect.radius ?? 0,
-          spread: effect.spread ?? 0
+          color: effect.color,
+          offset: effect.offset,
+          radius: effect.radius,
+          spread: effect.spread,
+          visible: effect.visible,
+          blendMode: effect.blendMode
         };
-        return shadow;
+      } else if (effect.type === 'LAYER_BLUR' || effect.type === 'BACKGROUND_BLUR') {
+        return {
+          type: effect.type,
+          radius: effect.radius,
+          visible: effect.visible
+        };
       }
-      return null;
-    }).filter((effect): effect is Shadow => effect !== null);
+      return effect;
+    });
   }
 
-  return style;
+  // Text properties
+  if (node.type === 'TEXT') {
+    if (typeof node.fontSize === 'number') {
+      properties.fontSize = node.fontSize;
+    }
+    if (isFontName(node.fontName)) {
+      properties.fontName = node.fontName;
+    }
+    properties.textAlignHorizontal = node.textAlignHorizontal;
+    properties.textAlignVertical = node.textAlignVertical;
+    if (isLetterSpacing(node.letterSpacing)) {
+      properties.letterSpacing = node.letterSpacing;
+    }
+    if (isLineHeight(node.lineHeight)) {
+      properties.lineHeight = node.lineHeight;
+    }
+    if (isTextCase(node.textCase)) {
+      properties.textCase = node.textCase;
+    }
+    if (isTextDecoration(node.textDecoration)) {
+      properties.textDecoration = node.textDecoration;
+    }
+    if (node.textAutoResize) {
+      properties.textAutoResize = node.textAutoResize;
+    }
+  }
+
+  // Constraints
+  if ('constraints' in node) {
+    const { horizontal, vertical } = node.constraints;
+    if (isHorizontalConstraint(horizontal) && isVerticalConstraint(vertical)) {
+      properties.constraints = { horizontal, vertical };
+    }
+  }
+
+  // Common properties
+  if ('opacity' in node && typeof node.opacity === 'number') {
+    properties.opacity = node.opacity;
+  }
+  if ('visible' in node && typeof node.visible === 'boolean') {
+    properties.visible = node.visible;
+  }
+  if ('locked' in node && typeof node.locked === 'boolean') {
+    properties.locked = node.locked;
+  }
+  if ('preserveRatio' in node && typeof node.preserveRatio === 'boolean') {
+    properties.preserveRatio = node.preserveRatio;
+  }
+  if ('blendMode' in node && typeof node.blendMode === 'string') {
+    properties.blendMode = node.blendMode as BlendMode;
+  }
+  if ('exportSettings' in node) {
+    properties.exportSettings = [...node.exportSettings];
+  }
+
+  return properties;
 }
 
 // Fixed version of getStructuralHash function
@@ -365,7 +587,49 @@ export async function discoverComponentsOnPage(): Promise<ComponentSpec[]> {
   }
 }
 
-// Screen analysis with error handling
+function detectDesignSystem(node: SceneNode): SupportedDesignSystem {
+  const nodeName = node.name.toLowerCase();
+  
+  for (const [system, patterns] of Object.entries(DESIGN_SYSTEM_PATTERNS)) {
+    const hasComponent = patterns.components.some(comp => nodeName.includes(comp));
+    const hasStyle = patterns.styles.some(style => nodeName.includes(style));
+    
+    if (hasComponent || hasStyle) {
+      return system as SupportedDesignSystem;
+    }
+  }
+  
+  return 'React Native Paper'; // Default
+}
+
+function detectPermissions(node: SceneNode): string[] {
+  const permissions = new Set<string>();
+  const nodeName = node.name.toLowerCase();
+  
+  for (const [category, info] of Object.entries(PERMISSION_PATTERNS)) {
+    if (info.patterns.some(pattern => nodeName.includes(pattern))) {
+      info.permissions.android.forEach(perm => permissions.add(perm));
+      info.permissions.ios.forEach(perm => permissions.add(perm));
+    }
+  }
+  
+  return Array.from(permissions);
+}
+
+function detectDependencies(node: SceneNode): string[] {
+  const dependencies = new Set<string>();
+  const nodeName = node.name.toLowerCase();
+  
+  for (const [dep, info] of Object.entries(DEPENDENCY_PATTERNS)) {
+    if (info.patterns.some(pattern => nodeName.includes(pattern))) {
+      dependencies.add(dep);
+    }
+  }
+  
+  return Array.from(dependencies);
+}
+
+// Update analyzeScreens function to use new detection functions
 export function analyzeScreens(
   selectedScreens: readonly SceneNode[],
   designSystem: SupportedDesignSystem
@@ -380,6 +644,7 @@ export function analyzeScreens(
       const dependencies = new Set<string>();
       const permissions = new Set<string>();
       const navigationScreens = new Set<string>();
+      const interactions = new Map<string, InteractionState[]>();
 
       // Analyze all nodes in the screen
       screenNode.findAll((node) => {
@@ -391,16 +656,27 @@ export function analyzeScreens(
           position: { x: node.x, y: node.y },
           dimensions: { width: node.width, height: node.height },
           styling: extractStyleProperties(node),
+          parent: node.parent?.id,
+          children: 'children' in node ? node.children.map(child => child.id) : [],
+          zIndex: node.parent ? node.parent.children.indexOf(node) : 0
         };
 
         // Add content for text nodes
         if (node.type === 'TEXT') {
           element.content = node.characters;
-        }
-
-        // Add children IDs for container nodes
-        if ('children' in node) {
-          element.children = node.children.map(child => child.id);
+          element.textStyle = {
+            fontSize: typeof node.fontSize === 'number' ? node.fontSize : 16, // Default font size
+            fontName: isFontName(node.fontName) ? node.fontName : {
+              family: 'Inter',
+              style: 'Regular'
+            },
+            textAlignHorizontal: node.textAlignHorizontal,
+            textAlignVertical: node.textAlignVertical,
+            letterSpacing: typeof node.letterSpacing === 'number' ? node.letterSpacing : 0,
+            lineHeight: typeof node.lineHeight === 'number' ? node.lineHeight : 1.2,
+            textCase: isTextCase(node.textCase) && node.textCase !== 'SMALL_CAPS' ? node.textCase : 'ORIGINAL',
+            textDecoration: isTextDecoration(node.textDecoration) ? node.textDecoration : 'NONE'
+          };
         }
 
         // Add auto-layout information
@@ -408,14 +684,45 @@ export function analyzeScreens(
           element.autoLayout = {
             direction: node.layoutMode,
             alignment: node.primaryAxisAlignItems,
+            counterAlignment: node.counterAxisAlignItems,
             spacing: node.itemSpacing,
             padding: {
               top: node.paddingTop,
               right: node.paddingRight,
               bottom: node.paddingBottom,
               left: node.paddingLeft
-            }
+            },
+            layoutWrap: node.layoutWrap,
+            layoutAlign: isLayoutAlign(node.layoutAlign) && (node.layoutAlign === 'STRETCH' || node.layoutAlign === 'INHERIT') 
+              ? node.layoutAlign 
+              : 'STRETCH',
+            layoutGrow: node.layoutGrow
           };
+        }
+
+        // Add grid layout information
+        if ('layoutGrids' in node && Array.isArray(node.layoutGrids)) {
+          element.gridLayout = node.layoutGrids.map(grid => ({
+            pattern: grid.pattern,
+            sectionSize: grid.sectionSize,
+            visible: grid.visible,
+            color: grid.color,
+            alignment: grid.alignment,
+            gutterSize: grid.gutterSize,
+            count: grid.count,
+            offset: grid.offset
+          }));
+        }
+
+        // Add constraints
+        if ('constraints' in node) {
+          const { horizontal, vertical } = node.constraints;
+          if (isHorizontalConstraint(horizontal) && isVerticalConstraint(vertical)) {
+            element.constraints = {
+              horizontal,
+              vertical
+            };
+          }
         }
 
         // Add effects
@@ -426,29 +733,34 @@ export function analyzeScreens(
           }));
         }
 
-        // Add constraints
-        if ('constraints' in node) {
-          element.constraints = {
-            horizontal: node.constraints.horizontal,
-            vertical: node.constraints.vertical
-          };
+        // Check for interactions
+        if (node.name.toLowerCase().includes('hover') || 
+            node.name.toLowerCase().includes('active') || 
+            node.name.toLowerCase().includes('pressed')) {
+          const baseName = node.name.split('/')[0];
+          if (!interactions.has(baseName)) {
+            interactions.set(baseName, []);
+          }
+          interactions.get(baseName)?.push({
+            state: node.name.toLowerCase().includes('hover') ? 'hover' :
+                   node.name.toLowerCase().includes('active') ? 'active' : 'pressed',
+            nodeId: node.id
+          });
         }
 
         elements.push(element);
 
-        // Check for dependencies and permissions
-        const nodeName = node.name.toLowerCase();
-        if (nodeName.includes('map')) dependencies.add('react-native-maps');
-        if (nodeName.includes('camera') || nodeName.includes('avatar-upload')) {
-          permissions.add('android.permission.CAMERA');
-          permissions.add('ios.permission.NSCameraUsageDescription');
-        }
-        if (nodeName.includes('location')) permissions.add('android.permission.ACCESS_FINE_LOCATION');
+        // Detect permissions and dependencies
+        const nodePermissions = detectPermissions(node);
+        const nodeDependencies = detectDependencies(node);
+        
+        nodePermissions.forEach(perm => permissions.add(perm));
+        nodeDependencies.forEach(dep => dependencies.add(dep));
 
         // Check for navigation patterns
-        if (nodeName.includes('nav') || nodeName.includes('menu')) {
-          const navType = nodeName.includes('tab') ? 'tab' : 
-                         nodeName.includes('drawer') ? 'drawer' : 'stack';
+        if (node.name.toLowerCase().includes('nav') || node.name.toLowerCase().includes('menu')) {
+          const navType = node.name.toLowerCase().includes('tab') ? 'tab' : 
+                         node.name.toLowerCase().includes('drawer') ? 'drawer' : 'stack';
           // Look for connected screens
           if ('findAll' in node && typeof node.findAll === 'function') {
             node.findAll((n: SceneNode) => {
@@ -468,10 +780,11 @@ export function analyzeScreens(
         name: screenNode.name,
         dimensions: { width: screenNode.width, height: screenNode.height },
         layout: extractStyleProperties(screenNode),
-        designSystem,
+        designSystem: detectDesignSystem(screenNode),
         elements,
         dependencies: Array.from(dependencies),
         permissions: Array.from(permissions),
+        interactions: Object.fromEntries(interactions)
       };
 
       // Add navigation if found

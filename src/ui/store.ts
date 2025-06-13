@@ -1,99 +1,79 @@
 import { create } from 'zustand';
-import { ScreenSpec, SupportedDesignSystem } from '../shared/types';
+import { ScreenSpec, SupportedDesignSystem, ExportBundle, AIPrompt } from '../shared/types';
+import { postToFigma } from './lib/utils';
+
+interface PageInfo {
+  name: string;
+  id: string;
+  nodeCount: number;
+}
 
 interface ErrorState {
   message: string;
   context: string;
 }
 
-interface PageInfo {
-  name: string;
-  nodeCount: number;
-}
-
 interface AppState {
-  // Core state
-  appStage: 'welcome' | 'analyzing' | 'review' | 'exporting' | 'complete' | 'error';
+  appStage: 'welcome' | 'analyzing' | 'review' | 'export';
   isLoading: boolean;
-  screenSpecs: ScreenSpec[];
   designSystem: SupportedDesignSystem;
-  pageInfo: PageInfo | null;
-  
-  // Error handling
-  error: ErrorState | null;
-  
-  // Loading states
+  screenSpecs: ScreenSpec[];
+  analyzedScreens: ScreenSpec[];
   isAnalyzing: boolean;
   isExporting: boolean;
-
-  // Actions
+  error: ErrorState | null;
+  pageInfo: PageInfo | null;
+  exportBundleData: ExportBundle | null;
   setAppStage: (stage: AppState['appStage']) => void;
   setLoading: (loading: boolean) => void;
-  setScreenSpecs: (specs: ScreenSpec[]) => void;
   setDesignSystem: (system: SupportedDesignSystem) => void;
+  setScreenSpecs: (specs: ScreenSpec[]) => void;
+  setAnalyzedScreens: (screens: ScreenSpec[]) => void;
+  setAnalyzing: (analyzing: boolean) => void;
+  setExporting: (exporting: boolean) => void;
   setError: (error: ErrorState | null) => void;
-  setAnalyzing: (isAnalyzing: boolean) => void;
-  setExporting: (isExporting: boolean) => void;
-  setPageInfo: (info: PageInfo) => void;
+  setPageInfo: (info: PageInfo | null) => void;
   clearError: () => void;
+  setExportBundleData: (bundle: ExportBundle | null) => void;
+  exportBundle: () => Promise<void>;
 }
 
-const initialState = {
-  appStage: 'welcome' as const,
+export const useStore = create<AppState>()((set, get) => ({
+  appStage: 'welcome',
   isLoading: true,
+  designSystem: 'React Native Paper',
   screenSpecs: [],
-  designSystem: 'Custom' as SupportedDesignSystem,
-  pageInfo: null,
-  error: null,
+  analyzedScreens: [],
   isAnalyzing: false,
-  isExporting: false
-};
+  isExporting: false,
+  error: null,
+  pageInfo: null,
+  exportBundleData: null,
 
-export const useStore = create<AppState>((set, get) => {
-  console.log('Initializing store with state:', initialState);
-  
-  return {
-    ...initialState,
+  setAppStage: (stage) => set({ appStage: stage }),
+  setLoading: (loading) => set({ isLoading: loading }),
+  setDesignSystem: (system) => set({ designSystem: system }),
+  setScreenSpecs: (specs) => set({ screenSpecs: specs }),
+  setAnalyzedScreens: (screens) => set({ analyzedScreens: screens }),
+  setAnalyzing: (analyzing) => set({ isAnalyzing: analyzing }),
+  setExporting: (exporting) => set({ isExporting: exporting }),
+  setError: (error) => set({ error }),
+  setPageInfo: (info) => set({ pageInfo: info }),
+  clearError: () => set({ error: null }),
+  setExportBundleData: (bundle) => set({ exportBundleData: bundle }),
 
-    // Actions
-    setAppStage: (stage) => {
-      console.log('Setting app stage:', stage);
-      set({ appStage: stage });
-    },
-    setLoading: (loading) => {
-      console.log('Setting loading:', loading);
-      set({ isLoading: loading });
-    },
-    setScreenSpecs: (specs) => {
-      console.log('Setting screen specs:', specs.length);
-      set({ screenSpecs: specs });
-    },
-    setDesignSystem: (system) => {
-      console.log('Setting design system:', system);
-      set({ designSystem: system });
-    },
-    setError: (error) => {
-      console.log('Setting error:', error);
-      set({ 
-        error, 
-        appStage: error ? 'error' : get().appStage 
-      });
-    },
-    setAnalyzing: (isAnalyzing) => {
-      console.log('Setting analyzing:', isAnalyzing);
-      set({ isAnalyzing });
-    },
-    setExporting: (isExporting) => {
-      console.log('Setting exporting:', isExporting);
-      set({ isExporting });
-    },
-    setPageInfo: (info) => {
-      console.log('Setting page info:', info);
-      set({ pageInfo: info });
-    },
-    clearError: () => {
-      console.log('Clearing error');
-      set({ error: null });
+  exportBundle: async () => {
+    const { screenSpecs } = get();
+    set({ isExporting: true, error: null });
+    try {
+      await postToFigma('EXPORT_BUNDLE', { screenSpecs });
+    } catch (error) {
+      set({ error: { 
+        message: error instanceof Error ? error.message : 'Export failed',
+        context: 'export'
+      }});
+    } finally {
+      set({ isExporting: false });
     }
-  };
-});
+  }
+}));

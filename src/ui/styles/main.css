@@ -335,76 +335,184 @@ body {
 .screen-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
   flex: 1;
 }
 
 .screen-item {
-  background: var(--figma-color-bg-secondary);
+  background: #fff;
   border-radius: 8px;
-  padding: 16px;
-  border: 1px solid var(--figma-color-border);
+  padding: 24px;
+  border: 1px solid #000;
 }
 
 .screen-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #000;
 }
 
 .screen-header h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
+}
+
+.screen-meta {
+  display: flex;
+  gap: 16px;
+  align-items: center;
 }
 
 .screen-dimensions {
-  color: var(--figma-color-text-secondary);
   font-size: 14px;
+  color: #000;
+}
+
+.screen-design-system {
+  font-size: 14px;
+  color: #000;
+  padding: 4px 8px;
+  border: 1px solid #000;
+  border-radius: 4px;
 }
 
 .screen-details {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .detail-group {
-  background: var(--figma-color-bg);
+  background: #fff;
   border-radius: 6px;
-  padding: 12px;
+  padding: 16px;
+  border: 1px solid #000;
 }
 
 .detail-group h4 {
-  margin: 0 0 8px;
-  font-size: 14px;
+  margin: 0 0 16px;
+  font-size: 16px;
   font-weight: 600;
-  color: var(--figma-color-text-secondary);
+  color: #000;
 }
 
-.detail-group ul {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.detail-group li {
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  font-size: 14px;
+  color: #666;
+}
+
+.detail-value {
+  font-size: 14px;
+  color: #000;
+  font-family: monospace;
+}
+
+.element-details {
+  padding: 16px;
+  border: 1px solid #000;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.element-header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #000;
+}
+
+.element-type {
+  font-size: 12px;
+  color: #fff;
+  background: #000;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.element-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #000;
+}
+
+.element-properties {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.property-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.property-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.property-label {
   font-size: 13px;
-  margin-bottom: 4px;
-  color: var(--figma-color-text);
+  color: #666;
 }
 
-.detail-group ul ul {
-  margin-left: 16px;
-  margin-top: 4px;
+.property-value {
+  font-size: 13px;
+  color: #000;
+  font-family: monospace;
+}
+
+.effect-tag {
+  display: inline-block;
+  padding: 2px 6px;
+  background: #f5f5f5;
+  border: 1px solid #000;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-right: 8px;
+}
+
+.dependency-item,
+.permission-item {
+  padding: 8px 12px;
+  background: #f5f5f5;
+  border: 1px solid #000;
+  border-radius: 4px;
+  font-size: 13px;
+  margin-bottom: 8px;
 }
 
 .action-bar {
   display: flex;
   justify-content: center;
-  padding: 16px 0;
-  border-top: 1px solid var(--figma-color-border);
+  padding: 24px 0;
+  border-top: 1px solid #000;
 }
 
 .loading-container {
@@ -473,7 +581,7 @@ button {
   padding: 12px 24px;
   font-size: 14px;
   font-weight: 500;
-  border: none;
+  border: 1px solid #000;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -482,39 +590,35 @@ button {
 }
 
 .button-primary {
-  background: var(--figma-color-bg-brand);
-  color: var(--figma-color-text-onbrand);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  background: #000;
+  color: #fff;
 }
 
 .button-primary:hover:not(:disabled) {
-  background: var(--figma-color-bg-brand-hover);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: #333;
 }
 
 .button-primary:active:not(:disabled) {
-  background: var(--figma-color-bg-brand-pressed);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  background: #000;
 }
 
 .button-secondary {
-  background: var(--figma-color-bg-secondary);
-  color: var(--figma-color-text);
-  border: 1px solid var(--figma-color-border);
+  background: #fff;
+  color: #000;
+  border: 1px solid #000;
 }
 
 .button-secondary:hover:not(:disabled) {
-  background: var(--figma-color-bg-secondary-hover);
+  background: #f5f5f5;
 }
 
 .button-secondary:active:not(:disabled) {
-  background: var(--figma-color-bg-secondary-pressed);
+  background: #fff;
 }
 
 .button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  box-shadow: none;
 }
 
 /* Loading states */

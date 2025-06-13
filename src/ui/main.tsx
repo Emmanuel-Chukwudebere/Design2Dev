@@ -8,6 +8,10 @@ import { ExportScreen } from './features/ExportScreen';
 import { ErrorScreen } from './features/ErrorScreen';
 import { postToFigma } from './lib/utils';
 import './styles/main.css';
+import { initApiKey } from '../config/env';
+
+// Initialize API key
+initApiKey().catch(console.error);
 
 function App() {
   const { 
@@ -20,7 +24,9 @@ function App() {
     setPageInfo,
     setScreenSpecs,
     setAnalyzing,
-    clearError
+    setAnalyzedScreens,
+    clearError,
+    setExportBundleData
   } = useStore();
 
   useEffect(() => {
@@ -56,6 +62,7 @@ function App() {
         case 'ANALYSIS_COMPLETE':
           console.log('Analysis complete, updating stage and specs:', pluginMessage.payload);
           setScreenSpecs(pluginMessage.payload.screenSpecs);
+          setAnalyzedScreens(pluginMessage.payload.screenSpecs);
           setAnalyzing(false);
           setAppStage('review');
           break;
@@ -71,7 +78,8 @@ function App() {
 
         case 'EXPORT_COMPLETE':
           console.log('Export complete, updating stage');
-          setAppStage('complete');
+          setAppStage('export');
+          setExportBundleData(pluginMessage.payload.bundle);
           break;
 
         case 'ERROR':
@@ -112,8 +120,7 @@ function App() {
     case 'analyzing':
     case 'review':
       return <ReviewScreen />;
-    case 'exporting':
-    case 'complete':
+    case 'export':
       return <ExportScreen />;
     default:
       return <ErrorScreen error={{ message: 'Invalid app stage', context: 'main' }} onRetry={clearError} />;
