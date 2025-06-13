@@ -8,10 +8,6 @@ import { ExportScreen } from './features/ExportScreen';
 import { ErrorScreen } from './features/ErrorScreen';
 import { postToFigma } from './lib/utils';
 import './styles/main.css';
-import { initApiKey } from '../config/env';
-
-// Initialize API key
-initApiKey().catch(console.error);
 
 function App() {
   const { 

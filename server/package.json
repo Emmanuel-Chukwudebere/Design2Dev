@@ -1,7 +1,7 @@
 {
-  "name": "design2dev-backend",
+  "name": "design2dev-server",
   "version": "1.0.0",
-  "description": "Backend for Design2Dev Figma plugin",
+  "description": "Backend server for Design2Dev Figma plugin",
   "main": "index.ts",
   "scripts": {
     "start": "ts-node index.ts",
@@ -10,15 +10,17 @@
   },
   "dependencies": {
     "cors": "^2.8.5",
-    "dotenv": "^16.0.3",
-    "express": "^4.18.2"
+    "dotenv": "^16.5.0",
+    "express": "^4.21.2",
+    "node-fetch": "^2.7.0"
   },
   "devDependencies": {
-    "@types/cors": "^2.8.13",
-    "@types/express": "^4.17.17",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.23",
     "@types/node": "^18.15.11",
+    "@types/node-fetch": "^2.6.12",
     "nodemon": "^2.0.22",
     "ts-node": "^10.9.1",
     "typescript": "^5.0.4"
   }
-} 
+}

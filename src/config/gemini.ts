@@ -1,10 +1,8 @@
 // src/config/gemini.ts
 import { ENV } from './env';
 
-const API_BASE_URL = 'https://your-render-backend-url.onrender.com';
-
-export const GEMINI_API_KEY = ENV.GEMINI_API_KEY;
-export const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+// Update this with your Render backend URL
+const API_BASE_URL = 'https://design2dev.onrender.com';
 
 export interface GeminiResponse {
   candidates: Array<{
@@ -62,50 +60,49 @@ interface ScreenSpec {
   dataModels: Record<string, any>;
 }
 
-async function analyzeScreenStructure(screen: any): Promise<ScreenSpec> {
+export const analyzeScreenStructure = async (screen: ScreenSpec) => {
   try {
     const response = await fetch(`${API_BASE_URL}/api/analyze`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': ENV.API_KEY
+        'Authorization': `Bearer ${ENV.API_KEY}`
       },
-      body: JSON.stringify(screen)
+      body: JSON.stringify({ screen })
     });
 
     if (!response.ok) {
-      throw new Error('Failed to analyze screen');
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    return response.json();
+    return await response.json();
   } catch (error) {
     console.error('Error analyzing screen:', error);
-    return generateFallbackSpec(screen);
+    return screen; // Fallback to original screen spec
   }
-}
+};
 
-async function generatePromptWithGemini(screen: ScreenSpec): Promise<string> {
+export const generatePromptWithGemini = async (screenSpec: ScreenSpec) => {
   try {
     const response = await fetch(`${API_BASE_URL}/api/prompt`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': ENV.API_KEY
+        'Authorization': `Bearer ${ENV.API_KEY}`
       },
-      body: JSON.stringify(screen)
+      body: JSON.stringify({ screenSpec })
     });
 
     if (!response.ok) {
-      throw new Error('Failed to generate prompt');
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const data = await response.json();
-    return data.prompt;
+    return await response.text();
   } catch (error) {
     console.error('Error generating prompt:', error);
-    return generateFallbackPrompt(screen);
+    return ''; // Fallback to empty string
   }
-}
+};
 
 function generateFallbackSpec(screen: any): ScreenSpec {
   return {
@@ -171,8 +168,8 @@ function generateFallbackPrompt(screen: ScreenSpec): string {
 ${screen.components.map(comp => `- ${comp.id} (${comp.type})`).join('\n')}
 
 ## Design Tokens
-${Object.entries(screen.sharedDesignTokens).map(([category, tokens]) => 
-  `### ${category}\n${Object.entries(tokens).map(([key, value]) => `- ${key}: ${JSON.stringify(value)}`).join('\n')}`
+${Object.entries(screen.sharedDesignTokens as Record<string, any>).map(([category, tokens]) => 
+  `### ${category}\n${Object.entries(tokens as Record<string, any>).map(([key, value]) => `- ${key}: ${JSON.stringify(value)}`).join('\n')}`
 ).join('\n\n')}
 
 ## Assets
@@ -190,4 +187,4 @@ ${Object.entries(screen.dataModels).map(([model, spec]) =>
 - Support screen readers`;
 }
 
-export { analyzeScreenStructure, generatePromptWithGemini, type ScreenSpec, type ComponentSpec, type DesignTokens }; 
+export type { ScreenSpec, ComponentSpec, DesignTokens }; 
