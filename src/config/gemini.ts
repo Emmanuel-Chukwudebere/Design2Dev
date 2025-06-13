@@ -62,6 +62,10 @@ interface ScreenSpec {
 
 export const analyzeScreenStructure = async (screen: ScreenSpec) => {
   try {
+    console.log('Analyzing screen:', screen.screenMetadata.name);
+    console.log('API URL:', `${API_BASE_URL}/api/analyze`);
+    console.log('API Key:', ENV.API_KEY ? 'Present' : 'Missing');
+
     const response = await fetch(`${API_BASE_URL}/api/analyze`, {
       method: 'POST',
       headers: {
@@ -72,13 +76,21 @@ export const analyzeScreenStructure = async (screen: ScreenSpec) => {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      console.error('API Error:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText
+      });
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
     }
 
-    return await response.json();
+    const result = await response.json();
+    console.log('Analysis result:', result);
+    return result;
   } catch (error) {
     console.error('Error analyzing screen:', error);
-    return screen; // Fallback to original screen spec
+    throw error; // Propagate error instead of falling back
   }
 };
 

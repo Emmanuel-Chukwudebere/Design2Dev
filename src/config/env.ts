@@ -1,6 +1,6 @@
 // src/config/env.ts
 // Environment configuration
-const API_KEY = 'd2d1';
+const API_KEY = process.env.API_KEY || 'd2d1';
 
 // Initialize API key from Figma client storage
 export const initApiKey = async () => {
@@ -28,5 +28,5 @@ export const setApiKey = async (key: string) => {
 // Environment variables
 export const ENV = {
   API_KEY,
-  NODE_ENV: 'development'
+  NODE_ENV: process.env.NODE_ENV || 'development'
 } as const; 
