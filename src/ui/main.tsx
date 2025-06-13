@@ -22,7 +22,8 @@ function App() {
     setAnalyzing,
     setAnalyzedScreens,
     clearError,
-    setExportBundleData
+    setExportBundleData,
+    setExporting
   } = useStore();
 
   useEffect(() => {
@@ -38,7 +39,7 @@ function App() {
       }
 
       console.log('Processing message:', pluginMessage.type, pluginMessage.payload);
-
+      
       switch (pluginMessage.type) {
         case 'PLUGIN_READY':
           console.log('Plugin is ready, setting loading to false');
@@ -72,10 +73,25 @@ function App() {
           });
           break;
 
+        case 'EXPORT_STARTED':
+          console.log('Export started');
+          setExporting(true);
+          break;
+
         case 'EXPORT_COMPLETE':
           console.log('Export complete, updating stage');
+          setExporting(false);
           setAppStage('export');
           setExportBundleData(pluginMessage.payload.bundle);
+          break;
+
+        case 'EXPORT_FAILED':
+          console.log('Export failed');
+          setExporting(false);
+          setError({ 
+            message: 'Failed to export bundle. Please try again.',
+            context: 'export'
+          });
           break;
 
         case 'ERROR':
