@@ -11,9 +11,9 @@ interface ComponentConfig {
 }
 
 export const designSystems: Record<SupportedDesignSystem, DesignSystem> = {
-  'React Native Paper': {
+  'react-native-paper': {
     name: 'React Native Paper',
-    description: 'Material Design for React Native',
+    description: 'Material Design components for React Native',
     components: {
       button: {
         name: 'Button',
@@ -81,9 +81,149 @@ export const designSystems: Record<SupportedDesignSystem, DesignSystem> = {
     },
     dependencies: ['react-native-paper', 'react-native-vector-icons'],
   },
-  'Material UI': {
+  'react-native-elements': {
+    name: 'React Native Elements',
+    description: 'Cross-platform React Native UI toolkit',
+    components: {
+      button: {
+        name: 'Button',
+        variants: {
+          solid: 'type="solid"',
+          outline: 'type="outline"',
+          clear: 'type="clear"',
+        },
+        states: {
+          disabled: 'disabled',
+          loading: 'loading',
+        },
+        props: {
+          icon: 'icon',
+          title: 'title',
+          onPress: 'onPress',
+        },
+      },
+      card: {
+        name: 'Card',
+        variants: {
+          elevated: 'containerStyle={{ elevation: 4 }}',
+          outlined: 'containerStyle={{ borderWidth: 1 }}',
+        },
+        states: {
+          disabled: 'disabled',
+        },
+        props: {
+          title: 'title',
+          children: 'children',
+          footer: 'footer',
+        },
+      },
+      text: {
+        name: 'Text',
+        variants: {
+          h1: 'h1',
+          h2: 'h2',
+          h3: 'h3',
+          body: 'p',
+          caption: 'caption',
+        },
+        props: {
+          children: 'children',
+          style: 'style',
+        },
+      },
+      input: {
+        name: 'Input',
+        variants: {
+          outlined: 'containerStyle={{ borderWidth: 1 }}',
+          underlined: 'containerStyle={{ borderBottomWidth: 1 }}',
+        },
+        states: {
+          disabled: 'disabled',
+          error: 'errorMessage',
+        },
+        props: {
+          label: 'label',
+          value: 'value',
+          onChangeText: 'onChangeText',
+          placeholder: 'placeholder',
+        },
+      },
+    },
+    dependencies: ['@rneui/themed', '@rneui/base'],
+  },
+  'native-base': {
+    name: 'NativeBase',
+    description: 'Essential cross-platform UI components for React Native',
+    components: {
+      button: {
+        name: 'Button',
+        variants: {
+          solid: 'variant="solid"',
+          outline: 'variant="outline"',
+          ghost: 'variant="ghost"',
+        },
+        states: {
+          disabled: 'isDisabled',
+          loading: 'isLoading',
+        },
+        props: {
+          leftIcon: 'leftIcon',
+          rightIcon: 'rightIcon',
+          onPress: 'onPress',
+        },
+      },
+      card: {
+        name: 'Card',
+        variants: {
+          elevated: 'variant="elevated"',
+          outline: 'variant="outline"',
+        },
+        states: {
+          disabled: 'isDisabled',
+        },
+        props: {
+          title: 'title',
+          children: 'children',
+          footer: 'footer',
+        },
+      },
+      text: {
+        name: 'Text',
+        variants: {
+          h1: 'fontSize="2xl"',
+          h2: 'fontSize="xl"',
+          h3: 'fontSize="lg"',
+          body: 'fontSize="md"',
+          caption: 'fontSize="sm"',
+        },
+        props: {
+          children: 'children',
+          style: 'style',
+        },
+      },
+      input: {
+        name: 'Input',
+        variants: {
+          outline: 'variant="outline"',
+          filled: 'variant="filled"',
+          rounded: 'variant="rounded"',
+        },
+        states: {
+          disabled: 'isDisabled',
+          error: 'isInvalid',
+        },
+        props: {
+          placeholder: 'placeholder',
+          value: 'value',
+          onChangeText: 'onChangeText',
+        },
+      },
+    },
+    dependencies: ['native-base'],
+  },
+  'material-ui': {
     name: 'Material UI',
-    description: 'Material UI for React and React Native',
+    description: 'React components that implement Google\'s Material Design',
     components: {
       button: {
         name: 'Button',
@@ -152,9 +292,9 @@ export const designSystems: Record<SupportedDesignSystem, DesignSystem> = {
     },
     dependencies: ['@mui/material', '@emotion/react', '@emotion/styled'],
   },
-  'Chakra UI': {
+  'chakra-ui': {
     name: 'Chakra UI',
-    description: 'Accessible React component library',
+    description: 'Simple, modular and accessible component library for React',
     components: {
       button: {
         name: 'Button',
@@ -174,28 +314,28 @@ export const designSystems: Record<SupportedDesignSystem, DesignSystem> = {
         },
       },
       card: {
-        name: 'Card',
+        name: 'Box',
         variants: {
-          elevated: 'variant="elevated"',
-          outline: 'variant="outline"',
+          elevated: 'shadow="md"',
+          outlined: 'borderWidth="1px"',
         },
         states: {
           disabled: 'isDisabled',
         },
         props: {
-          title: 'title',
           children: 'children',
-          footer: 'footer',
+          p: 'p',
+          m: 'm',
         },
       },
       text: {
         name: 'Text',
         variants: {
-          h1: 'as="h1"',
-          h2: 'as="h2"',
-          h3: 'as="h3"',
-          body: 'as="p"',
-          caption: 'as="span"',
+          h1: 'fontSize="4xl"',
+          h2: 'fontSize="3xl"',
+          h3: 'fontSize="2xl"',
+          body: 'fontSize="md"',
+          caption: 'fontSize="sm"',
         },
         props: {
           children: 'children',
@@ -222,28 +362,10 @@ export const designSystems: Record<SupportedDesignSystem, DesignSystem> = {
     },
     dependencies: ['@chakra-ui/react', '@emotion/react', '@emotion/styled', 'framer-motion'],
   },
-  'NativeBase': {
-    name: 'NativeBase',
-    description: 'Essential cross-platform UI components for React Native',
-    components: {},
-    dependencies: [],
-  },
-  'React Native Elements': {
-    name: 'React Native Elements',
-    description: 'Cross-platform React Native UI toolkit',
-    components: {},
-    dependencies: [],
-  },
-  'UI Kitten': {
-    name: 'UI Kitten',
-    description: 'React Native UI Library based on Eva Design System',
-    components: {},
-    dependencies: [],
-  },
-  'Custom': {
+  'custom': {
     name: 'Custom',
     description: 'Custom design system',
     components: {},
     dependencies: [],
-  },
+  }
 };

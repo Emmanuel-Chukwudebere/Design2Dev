@@ -23,7 +23,7 @@ export function Card({
     default: 'bg-white border border-gray-200',
     elevated: 'bg-white shadow-lg border border-gray-100',
     outlined: 'bg-transparent border-2 border-gray-300',
-    ghost: 'bg-gray-50/50 border border-transparent'
+    ghost: 'bg-transparent border border-transparent'
   };
 
   const paddingClasses = {

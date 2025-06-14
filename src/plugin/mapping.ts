@@ -45,8 +45,8 @@ const COMPONENT_PATTERNS: Record<string, ComponentPattern> = {
 // Style similarity weights
 const STYLE_WEIGHTS = {
   layoutMode: 0.3,
-  primaryAlign: 0.2,
-  counterAlign: 0.2,
+  primaryAxisAlignItems: 0.2,
+  counterAxisAlignItems: 0.2,
   padding: 0.15,
   itemSpacing: 0.15,
 } as const;
@@ -61,8 +61,8 @@ function calculateStyleSimilarity(component: ComponentSpec, targetComponent: str
   }
 
   // Check alignment properties
-  if (styling.primaryAlign !== 'MIN' || styling.counterAlign !== 'MIN') {
-    similarity += STYLE_WEIGHTS.primaryAlign + STYLE_WEIGHTS.counterAlign;
+  if (styling.primaryAxisAlignItems !== 'MIN' || styling.counterAxisAlignItems !== 'MIN') {
+    similarity += STYLE_WEIGHTS.primaryAxisAlignItems + STYLE_WEIGHTS.counterAxisAlignItems;
   }
 
   // Check spacing properties

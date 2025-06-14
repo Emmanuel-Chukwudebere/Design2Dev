@@ -3,13 +3,13 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const InlineChunkHtmlPlugin = require('inline-chunk-html-plugin');
 
-module.exports = (env, argv) => ({
+module.exports = {
   mode: 'development',
-  devtool: argv.mode === 'production' ? false : 'inline-source-map',
+  devtool: 'inline-source-map',
 
   entry: {
     ui: './src/ui/main.tsx',
-    controller: './src/plugin/controller.ts',
+    controller: './src/plugin/controller.ts'
   },
 
   output: {
@@ -19,7 +19,7 @@ module.exports = (env, argv) => ({
   },
 
   resolve: {
-    extensions: ['.tsx', '.ts', '.js', '.css'],
+    extensions: ['.tsx', '.ts', '.js'],
   },
 
   module: {
@@ -27,22 +27,27 @@ module.exports = (env, argv) => ({
       {
         test: /\.tsx?$/,
         use: 'ts-loader',
-        exclude: /node_modules/,
+        exclude: /node_modules/
       },
       {
         test: /\.css$/,
         use: [
           'style-loader',
+          'css-loader',
           {
-            loader: 'css-loader',
+            loader: 'postcss-loader',
             options: {
-              importLoaders: 1,
+              postcssOptions: {
+                plugins: [
+                  require('tailwindcss'),
+                  require('autoprefixer'),
+                ],
+              },
             },
           },
-          'postcss-loader',
-        ],
-      },
-    ],
+        ]
+      }
+    ]
   },
 
   plugins: [
@@ -50,8 +55,8 @@ module.exports = (env, argv) => ({
       template: './src/ui/ui.html',
       filename: 'ui.html',
       chunks: ['ui'],
-      cache: false,
+      cache: false
     }),
-    new InlineChunkHtmlPlugin(HtmlWebpackPlugin, [/ui/]),
-  ],
-});
+    new InlineChunkHtmlPlugin(HtmlWebpackPlugin, [/ui/])
+  ]
+};

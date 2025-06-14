@@ -1,80 +1,57 @@
 import { create } from 'zustand';
-import { ScreenSpec, SupportedDesignSystem, ExportBundle, AIPrompt } from '../shared/types';
-import { postToFigma } from './lib/utils';
+import { ScreenSpec, SupportedDesignSystem, ExportBundle } from '../shared/types';
 
 interface PageInfo {
   name: string;
-  id: string;
   nodeCount: number;
 }
 
-interface ErrorState {
-  message: string;
-  context: string;
-}
-
-interface AppState {
-  appStage: 'welcome' | 'analyzing' | 'review' | 'export';
-  isLoading: boolean;
-  designSystem: SupportedDesignSystem;
+interface StoreState {
+  appStage: 'welcome' | 'analyzing' | 'results' | 'export';
   screenSpecs: ScreenSpec[];
-  analyzedScreens: ScreenSpec[];
+  designSystem: SupportedDesignSystem;
+  exportBundleData: ExportBundle | null;
+  pageInfo: PageInfo | null;
+  error: { message: string; context?: string } | null;
   isAnalyzing: boolean;
   isExporting: boolean;
-  error: ErrorState | null;
-  pageInfo: PageInfo | null;
-  exportBundleData: ExportBundle | null;
-  setAppStage: (stage: AppState['appStage']) => void;
-  setLoading: (loading: boolean) => void;
-  setDesignSystem: (system: SupportedDesignSystem) => void;
+  setAppStage: (stage: StoreState['appStage']) => void;
   setScreenSpecs: (specs: ScreenSpec[]) => void;
-  setAnalyzedScreens: (screens: ScreenSpec[]) => void;
-  setAnalyzing: (analyzing: boolean) => void;
-  setExporting: (exporting: boolean) => void;
-  setError: (error: ErrorState | null) => void;
-  setPageInfo: (info: PageInfo | null) => void;
-  clearError: () => void;
+  setDesignSystem: (system: SupportedDesignSystem) => void;
   setExportBundleData: (bundle: ExportBundle | null) => void;
-  exportBundle: () => Promise<void>;
+  setPageInfo: (info: PageInfo | null) => void;
+  setError: (error: StoreState['error']) => void;
+  setAnalyzing: (isAnalyzing: boolean) => void;
+  setExporting: (isExporting: boolean) => void;
 }
 
-export const useStore = create<AppState>()((set, get) => ({
+const initialState: StoreState = {
   appStage: 'welcome',
-  isLoading: true,
-  designSystem: 'React Native Paper',
   screenSpecs: [],
-  analyzedScreens: [],
+  designSystem: 'react-native-paper',
+  exportBundleData: null,
+  pageInfo: null,
+  error: null,
   isAnalyzing: false,
   isExporting: false,
-  error: null,
-  pageInfo: null,
-  exportBundleData: null,
+  setAppStage: () => {},
+  setScreenSpecs: () => {},
+  setDesignSystem: () => {},
+  setExportBundleData: () => {},
+  setPageInfo: () => {},
+  setError: () => {},
+  setAnalyzing: () => {},
+  setExporting: () => {}
+};
 
+export const useStore = create<StoreState>((set) => ({
+  ...initialState,
   setAppStage: (stage) => set({ appStage: stage }),
-  setLoading: (loading) => set({ isLoading: loading }),
-  setDesignSystem: (system) => set({ designSystem: system }),
   setScreenSpecs: (specs) => set({ screenSpecs: specs }),
-  setAnalyzedScreens: (screens) => set({ analyzedScreens: screens }),
-  setAnalyzing: (analyzing) => set({ isAnalyzing: analyzing }),
-  setExporting: (exporting) => set({ isExporting: exporting }),
-  setError: (error) => set({ error }),
-  setPageInfo: (info) => set({ pageInfo: info }),
-  clearError: () => set({ error: null }),
+  setDesignSystem: (system) => set({ designSystem: system }),
   setExportBundleData: (bundle) => set({ exportBundleData: bundle }),
-
-  exportBundle: async () => {
-    const { screenSpecs } = get();
-    set({ isExporting: true, error: null });
-    try {
-      await postToFigma('EXPORT_BUNDLE', { screenSpecs });
-    } catch (error) {
-      set({ 
-        isExporting: false,
-        error: { 
-          message: error instanceof Error ? error.message : 'Export failed',
-          context: 'export'
-        }
-      });
-    }
-  }
+  setPageInfo: (info) => set({ pageInfo: info }),
+  setError: (error) => set({ error }),
+  setAnalyzing: (isAnalyzing) => set({ isAnalyzing }),
+  setExporting: (isExporting) => set({ isExporting })
 }));

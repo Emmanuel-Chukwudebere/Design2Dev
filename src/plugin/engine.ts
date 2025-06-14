@@ -11,28 +11,28 @@ const structuralHashCache = new Map<string, string>();
 
 // Design system detection patterns
 const DESIGN_SYSTEM_PATTERNS = {
-  'React Native Paper': {
+  'react-native-paper': {
     components: [
       'button', 'card', 'textinput', 'checkbox', 'radio', 'switch',
       'list', 'avatar', 'badge', 'chip', 'divider', 'fab'
     ],
     styles: ['elevation', 'ripple', 'paper']
   },
-  'Material UI': {
+  'material-ui': {
     components: [
       'mui-button', 'mui-card', 'mui-textfield', 'mui-checkbox',
       'mui-radio', 'mui-switch', 'mui-list', 'mui-avatar'
     ],
     styles: ['mui-elevation', 'mui-ripple']
   },
-  'Chakra UI': {
+  'chakra-ui': {
     components: [
       'chakra-button', 'chakra-box', 'chakra-input', 'chakra-checkbox',
       'chakra-radio', 'chakra-switch', 'chakra-list', 'chakra-avatar'
     ],
     styles: ['chakra-style', 'chakra-theme']
   },
-  'NativeBase': {
+  'native-base': {
     components: [
       'nb-button', 'nb-box', 'nb-input', 'nb-checkbox',
       'nb-radio', 'nb-switch', 'nb-list', 'nb-avatar'
@@ -125,8 +125,8 @@ function extractStyleProperties(node: SceneNode): StyleProperties {
   // Layout properties
   if ('layoutMode' in node) {
     properties.layoutMode = node.layoutMode;
-    properties.primaryAlign = node.primaryAxisAlignItems;
-    properties.counterAlign = node.counterAxisAlignItems;
+    properties.primaryAxisAlignItems = node.primaryAxisAlignItems;
+    properties.counterAxisAlignItems = node.counterAxisAlignItems;
     properties.padding = {
       top: node.paddingTop,
       right: node.paddingRight,
@@ -136,24 +136,29 @@ function extractStyleProperties(node: SceneNode): StyleProperties {
     properties.itemSpacing = node.itemSpacing;
     if ('layoutWrap' in node) properties.layoutWrap = node.layoutWrap;
     if (isLayoutAlign(node.layoutAlign)) {
-      properties.layoutAlign = node.layoutAlign;
+      properties.layoutAlign = node.layoutAlign as 'STRETCH' | 'INHERIT';
     }
     if ('layoutGrow' in node) properties.layoutGrow = node.layoutGrow;
-    if ('layoutPositioning' in node) properties.layoutPositioning = node.layoutPositioning;
+    if ('layoutPosition' in node) properties.layoutPosition = node.layoutPosition as 'ABSOLUTE' | 'RELATIVE';
   }
 
   // Grid layout
   if ('layoutGrids' in node && Array.isArray(node.layoutGrids)) {
-    properties.gridLayout = node.layoutGrids.map(grid => ({
-      pattern: grid.pattern,
-      sectionSize: grid.sectionSize,
-      visible: grid.visible,
-      color: grid.color,
-      alignment: grid.alignment,
-      gutterSize: grid.gutterSize,
-      count: grid.count,
-      offset: grid.offset
-    }));
+    properties.layoutGrids = node.layoutGrids
+      .filter(grid => grid.pattern !== 'GRID') // Filter out GRID pattern
+      .map(grid => ({
+        pattern: grid.pattern as 'COLUMNS' | 'ROWS',
+        sectionSize: grid.sectionSize,
+        visible: grid.visible,
+        color: {
+          type: 'SOLID',
+          color: grid.color
+        },
+        alignment: grid.alignment,
+        gutterSize: grid.gutterSize,
+        count: grid.count,
+        offset: grid.offset
+      }));
   }
 
   // Position and size
@@ -162,18 +167,18 @@ function extractStyleProperties(node: SceneNode): StyleProperties {
     y: node.y
   };
   if ('rotation' in node && typeof node.rotation === 'number') {
-    properties.position.rotation = node.rotation;
+    properties.rotation = node.rotation;
   }
   if ('scaleX' in node && 'scaleY' in node && 
       typeof node.scaleX === 'number' && typeof node.scaleY === 'number') {
-    properties.position.scale = {
+    properties.scale = {
       x: node.scaleX,
       y: node.scaleY
     };
   }
 
   // Fill properties
-  if ('fills' in node && Array.isArray(node.fills)) {
+    if ('fills' in node && Array.isArray(node.fills)) {
     properties.fills = node.fills.map(fill => {
       if (fill.type === 'SOLID') {
         return {
@@ -207,7 +212,7 @@ function extractStyleProperties(node: SceneNode): StyleProperties {
   if ('strokes' in node && Array.isArray(node.strokes)) {
     properties.strokes = node.strokes.map(stroke => {
       if (stroke.type === 'SOLID') {
-        return {
+          return { 
           type: 'SOLID',
           color: {
             r: stroke.color.r,
@@ -240,40 +245,21 @@ function extractStyleProperties(node: SceneNode): StyleProperties {
   // Corner radius
   if ('cornerRadius' in node) {
     if (typeof node.cornerRadius === 'number') {
-      properties.cornerRadius = node.cornerRadius;
-    } else if (node.cornerRadius && typeof node.cornerRadius === 'object') {
-      const radius = node.cornerRadius as CornerRadius;
-      properties.cornerRadius = {
-        topLeft: radius.topLeft,
-        topRight: radius.topRight,
-        bottomRight: radius.bottomRight,
-        bottomLeft: radius.bottomLeft
-      };
+      properties.borderRadius = node.cornerRadius;
     }
   }
 
   // Effects
-  if ('effects' in node && Array.isArray(node.effects)) {
-    properties.effects = node.effects.map(effect => {
-      if (effect.type === 'DROP_SHADOW' || effect.type === 'INNER_SHADOW') {
-        return {
-          type: effect.type,
-          color: effect.color,
-          offset: effect.offset,
-          radius: effect.radius,
-          spread: effect.spread,
-          visible: effect.visible,
-          blendMode: effect.blendMode
-        };
-      } else if (effect.type === 'LAYER_BLUR' || effect.type === 'BACKGROUND_BLUR') {
-        return {
-          type: effect.type,
-          radius: effect.radius,
-          visible: effect.visible
-        };
-      }
-      return effect;
-    });
+    if ('effects' in node && Array.isArray(node.effects)) {
+    properties.effects = node.effects.map(effect => ({
+            type: effect.type, 
+      visible: effect.visible,
+            color: effect.color, 
+            offset: effect.offset, 
+      radius: effect.radius,
+      spread: effect.spread,
+      blendMode: effect.blendMode || 'NORMAL'
+    }));
   }
 
   // Text properties
@@ -284,13 +270,16 @@ function extractStyleProperties(node: SceneNode): StyleProperties {
     if (isFontName(node.fontName)) {
       properties.fontName = node.fontName;
     }
+    if (isLineHeight(node.lineHeight)) {
+      properties.lineHeight = {
+        value: typeof node.lineHeight === 'number' ? node.lineHeight : 0,
+        unit: 'PIXELS'
+      };
+    }
     properties.textAlignHorizontal = node.textAlignHorizontal;
     properties.textAlignVertical = node.textAlignVertical;
     if (isLetterSpacing(node.letterSpacing)) {
       properties.letterSpacing = node.letterSpacing;
-    }
-    if (isLineHeight(node.lineHeight)) {
-      properties.lineHeight = node.lineHeight;
     }
     if (isTextCase(node.textCase)) {
       properties.textCase = node.textCase;
@@ -299,7 +288,9 @@ function extractStyleProperties(node: SceneNode): StyleProperties {
       properties.textDecoration = node.textDecoration;
     }
     if (node.textAutoResize) {
-      properties.textAutoResize = node.textAutoResize;
+      if (node.textAutoResize !== 'TRUNCATE') {
+        properties.textAutoResize = node.textAutoResize;
+      }
     }
   }
 
@@ -321,14 +312,39 @@ function extractStyleProperties(node: SceneNode): StyleProperties {
   if ('locked' in node && typeof node.locked === 'boolean') {
     properties.locked = node.locked;
   }
-  if ('preserveRatio' in node && typeof node.preserveRatio === 'boolean') {
-    properties.preserveRatio = node.preserveRatio;
-  }
   if ('blendMode' in node && typeof node.blendMode === 'string') {
-    properties.blendMode = node.blendMode as BlendMode;
+    properties.blendMode = node.blendMode;
   }
   if ('exportSettings' in node) {
-    properties.exportSettings = [...node.exportSettings];
+    properties.exportSettings = node.exportSettings.map(setting => {
+      const exportSetting: { format: 'JPG' | 'PNG' | 'SVG' | 'PDF'; constraint?: { type: 'HEIGHT' | 'SCALE' | 'WIDTH'; value: number } } = {
+        format: setting.format
+      };
+      
+      if ('constraint' in setting && setting.constraint) {
+        exportSetting.constraint = {
+          type: setting.constraint.type,
+          value: setting.constraint.value
+        };
+      }
+      
+      return exportSetting;
+    });
+  }
+
+  // Fix primaryAxisAlignItems and counterAxisAlignItems
+  if ('primaryAxisAlignItems' in node) {
+    const align = node.primaryAxisAlignItems;
+    if (align === 'MIN' || align === 'CENTER' || align === 'MAX' || align === 'SPACE_BETWEEN') {
+      properties.primaryAxisAlignItems = align;
+    }
+  }
+
+  if ('counterAxisAlignItems' in node) {
+    const align = node.counterAxisAlignItems;
+    if (align === 'MIN' || align === 'CENTER' || align === 'MAX' || align === 'BASELINE') {
+      properties.counterAxisAlignItems = align;
+    }
   }
 
   return properties;
@@ -533,8 +549,15 @@ export async function discoverComponentsOnPage(): Promise<ComponentSpec[]> {
           styling: extractStyleProperties(baseNode),
           dimensions: { width: baseNode.width, height: baseNode.height },
           variants: [],
-          mapping: { designSystem: 'Custom', mappedComponent: null, styleOverrides: [] },
-          accessibility: { role: 'group', label: null },
+          mapping: { 
+            designSystem: 'custom', 
+            mappedComponent: null, 
+            styleOverrides: [] 
+          },
+          accessibility: { 
+            role: 'group', 
+            label: null 
+          }
         };
 
         // Process variants with stricter limits
@@ -552,7 +575,7 @@ export async function discoverComponentsOnPage(): Promise<ComponentSpec[]> {
               styling: extractStyleProperties(variantNode),
               dimensions: { width: variantNode.width, height: variantNode.height },
               variants: [],
-              mapping: { designSystem: 'Custom', mappedComponent: null, styleOverrides: [] },
+              mapping: { designSystem: 'custom', mappedComponent: null, styleOverrides: [] },
               accessibility: { role: 'group', label: null },
             };
             baseSpec.variants.push(variantSpec);
@@ -595,11 +618,11 @@ function detectDesignSystem(node: SceneNode): SupportedDesignSystem {
     const hasStyle = patterns.styles.some(style => nodeName.includes(style));
     
     if (hasComponent || hasStyle) {
-      return system as SupportedDesignSystem;
+      return system.toLowerCase() as SupportedDesignSystem;
     }
   }
   
-  return 'React Native Paper'; // Default
+  return 'react-native-paper'; // Default
 }
 
 function detectPermissions(node: SceneNode): string[] {
@@ -653,7 +676,7 @@ export function analyzeScreens(
           id: node.id,
           name: node.name,
           type: node.type.toLowerCase() as ScreenSpec['elements'][0]['type'],
-          position: { x: node.x, y: node.y },
+              position: { x: node.x, y: node.y },
           dimensions: { width: node.width, height: node.height },
           styling: extractStyleProperties(node),
           parent: node.parent?.id,
@@ -665,17 +688,13 @@ export function analyzeScreens(
         if (node.type === 'TEXT') {
           element.content = node.characters;
           element.textStyle = {
-            fontSize: typeof node.fontSize === 'number' ? node.fontSize : 16, // Default font size
-            fontName: isFontName(node.fontName) ? node.fontName : {
-              family: 'Inter',
-              style: 'Regular'
-            },
-            textAlignHorizontal: node.textAlignHorizontal,
-            textAlignVertical: node.textAlignVertical,
-            letterSpacing: typeof node.letterSpacing === 'number' ? node.letterSpacing : 0,
+            fontFamily: isFontName(node.fontName) ? node.fontName.family : 'Inter',
+            fontSize: typeof node.fontSize === 'number' ? node.fontSize : 16,
+            fontWeight: 400,
             lineHeight: typeof node.lineHeight === 'number' ? node.lineHeight : 1.2,
-            textCase: isTextCase(node.textCase) && node.textCase !== 'SMALL_CAPS' ? node.textCase : 'ORIGINAL',
-            textDecoration: isTextDecoration(node.textDecoration) ? node.textDecoration : 'NONE'
+            letterSpacing: typeof node.letterSpacing === 'number' ? node.letterSpacing : 0,
+            textAlign: node.textAlignHorizontal?.toLowerCase() || 'left',
+            color: '#000000'
           };
         }
 
@@ -683,35 +702,21 @@ export function analyzeScreens(
         if ('layoutMode' in node && node.layoutMode !== 'NONE') {
           element.autoLayout = {
             direction: node.layoutMode,
-            alignment: node.primaryAxisAlignItems,
-            counterAlignment: node.counterAxisAlignItems,
             spacing: node.itemSpacing,
-            padding: {
-              top: node.paddingTop,
-              right: node.paddingRight,
-              bottom: node.paddingBottom,
-              left: node.paddingLeft
-            },
+            padding: node.paddingTop,
             layoutWrap: node.layoutWrap,
-            layoutAlign: isLayoutAlign(node.layoutAlign) && (node.layoutAlign === 'STRETCH' || node.layoutAlign === 'INHERIT') 
-              ? node.layoutAlign 
-              : 'STRETCH',
+            layoutAlign: isLayoutAlign(node.layoutAlign) ? (node.layoutAlign === 'STRETCH' || node.layoutAlign === 'INHERIT' ? node.layoutAlign : 'STRETCH') : 'STRETCH',
             layoutGrow: node.layoutGrow
           };
         }
 
         // Add grid layout information
         if ('layoutGrids' in node && Array.isArray(node.layoutGrids)) {
-          element.gridLayout = node.layoutGrids.map(grid => ({
-            pattern: grid.pattern,
-            sectionSize: grid.sectionSize,
-            visible: grid.visible,
-            color: grid.color,
-            alignment: grid.alignment,
-            gutterSize: grid.gutterSize,
-            count: grid.count,
-            offset: grid.offset
-          }));
+          element.gridLayout = {
+            columns: node.layoutGrids.length,
+            rows: 1,
+            spacing: node.layoutGrids[0]?.gutterSize || 0
+          };
         }
 
         // Add constraints
@@ -726,10 +731,15 @@ export function analyzeScreens(
         }
 
         // Add effects
-        if ('effects' in node && Array.isArray((node as any).effects) && (node as any).effects.length > 0) {
-          element.effects = ((node as any).effects).map((effect: any) => ({
+        if ('effects' in node && Array.isArray(node.effects)) {
+          element.effects = node.effects.map(effect => ({
             type: effect.type,
-            properties: effect
+            visible: effect.visible,
+            color: effect.color,
+            offset: effect.offset,
+            radius: effect.radius,
+            spread: effect.spread,
+            blendMode: effect.blendMode || 'NORMAL'
           }));
         }
 
@@ -783,15 +793,14 @@ export function analyzeScreens(
         designSystem: detectDesignSystem(screenNode),
         elements,
         dependencies: Array.from(dependencies),
-        permissions: Array.from(permissions),
         interactions: Object.fromEntries(interactions)
       };
 
       // Add navigation if found
       if (navigationScreens.size > 0) {
         spec.navigation = {
-          type: 'stack', // Default to stack, can be overridden by UI
-          screens: Array.from(navigationScreens)
+          type: 'stack',
+          target: Array.from(navigationScreens)[0]
         };
       }
 
@@ -817,7 +826,7 @@ export async function generateExportBundle(
 
     // Process screens
     for (const screen of screenSpecs) {
-      aiPrompts.push({
+        aiPrompts.push({
         screenName: screen.name,
         designSystem,
         specifications: JSON.stringify(screen, null, 2),
@@ -842,7 +851,7 @@ export async function generateExportBundle(
               format: 'PNG',
               constraint: { type: 'SCALE', value: 2 }
             });
-            assets.push({
+                assets.push({ 
               name: `${element.name}.png`,
               data
             });
@@ -860,5 +869,153 @@ export async function generateExportBundle(
     console.error('Error generating export bundle:', error);
     figma.notify('Error generating export bundle. Please try again.', { error: true });
     throw error;
+  }
+}
+
+// Update property assignments to match Figma's types
+function applyProperties(node: SceneNode, properties: StyleProperties) {
+  if ('opacity' in node && properties.opacity !== undefined) {
+    node.opacity = properties.opacity;
+  }
+  
+  if ('visible' in node && properties.visible !== undefined) {
+    node.visible = properties.visible;
+  }
+  
+  if ('rotation' in node && properties.rotation !== undefined) {
+    node.rotation = properties.rotation;
+  }
+  
+  if ('blendMode' in node && properties.blendMode !== undefined) {
+    node.blendMode = properties.blendMode as BlendMode;
+  }
+  
+  if ('effects' in node && properties.effects) {
+    node.effects = properties.effects.map(effect => ({
+      type: effect.type,
+      visible: effect.visible,
+      color: effect.color,
+      offset: effect.offset,
+      radius: effect.radius,
+      spread: effect.spread,
+      blendMode: (effect as any).blendMode || 'NORMAL'
+    })) as any;
+  }
+  
+  if ('layoutMode' in node && properties.layoutMode) {
+    node.layoutMode = properties.layoutMode;
+  }
+  
+  if ('primaryAxisSizingMode' in node && properties.primaryAxisSizingMode) {
+    node.primaryAxisSizingMode = properties.primaryAxisSizingMode;
+  }
+  
+  if ('counterAxisSizingMode' in node && properties.counterAxisSizingMode) {
+    node.counterAxisSizingMode = properties.counterAxisSizingMode;
+  }
+  
+  if ('paddingLeft' in node && properties.paddingLeft !== undefined) {
+    node.paddingLeft = properties.paddingLeft;
+  }
+  
+  if ('paddingRight' in node && properties.paddingRight !== undefined) {
+    node.paddingRight = properties.paddingRight;
+  }
+  
+  if ('paddingTop' in node && properties.paddingTop !== undefined) {
+    node.paddingTop = properties.paddingTop;
+  }
+  
+  if ('paddingBottom' in node && properties.paddingBottom !== undefined) {
+    node.paddingBottom = properties.paddingBottom;
+  }
+  
+  if ('itemSpacing' in node && properties.itemSpacing !== undefined) {
+    node.itemSpacing = properties.itemSpacing;
+  }
+  
+  if ('primaryAxisAlignItems' in node && properties.primaryAxisAlignItems) {
+    const align = properties.primaryAxisAlignItems;
+    if (align === 'MIN' || align === 'CENTER' || align === 'MAX' || align === 'SPACE_BETWEEN') {
+      node.primaryAxisAlignItems = align;
+    }
+  }
+  
+  if ('counterAxisAlignItems' in node && properties.counterAxisAlignItems) {
+    const align = properties.counterAxisAlignItems;
+    if (align === 'MIN' || align === 'CENTER' || align === 'MAX' || align === 'BASELINE') {
+      node.counterAxisAlignItems = align;
+    }
+  }
+  
+  if ('layoutAlign' in node && properties.layoutAlign) {
+    node.layoutAlign = properties.layoutAlign as 'STRETCH' | 'INHERIT';
+  }
+  
+  if ('layoutGrow' in node && properties.layoutGrow !== undefined) {
+    node.layoutGrow = properties.layoutGrow;
+  }
+  
+  if ('layoutWrap' in node && properties.layoutWrap) {
+    node.layoutWrap = properties.layoutWrap;
+  }
+  
+  if ('layoutPosition' in node && properties.layoutPosition) {
+    node.layoutPosition = properties.layoutPosition;
+  }
+  
+  if ('x' in node && properties.position?.x !== undefined) {
+    node.x = properties.position.x;
+  }
+  
+  if ('y' in node && properties.position?.y !== undefined) {
+    node.y = properties.position.y;
+  }
+  
+  if ('cornerRadius' in node && properties.borderRadius !== undefined) {
+    (node as any).cornerRadius = properties.borderRadius;
+  }
+  
+  if ('lineHeight' in node && properties.lineHeight) {
+    node.lineHeight = properties.lineHeight;
+  }
+  
+  if ('exportSettings' in node && properties.exportSettings) {
+    node.exportSettings = properties.exportSettings.map(setting => {
+      const exportSetting: { format: 'JPG' | 'PNG' | 'SVG' | 'PDF'; constraint?: { type: 'HEIGHT' | 'SCALE' | 'WIDTH'; value: number } } = {
+        format: setting.format
+      };
+      
+      if ('constraint' in setting && setting.constraint) {
+        exportSetting.constraint = {
+          type: setting.constraint.type,
+          value: setting.constraint.value
+        };
+      }
+      
+      return exportSetting;
+    });
+  }
+  
+  if ('layoutGrids' in node && properties.layoutGrids) {
+    node.layoutGrids = properties.layoutGrids.map(grid => ({
+      pattern: grid.pattern,
+      sectionSize: grid.sectionSize,
+      visible: grid.visible,
+      color: grid.color.color,
+      alignment: grid.alignment,
+      gutterSize: grid.gutterSize,
+      count: grid.count,
+      offset: grid.offset
+    })) as readonly LayoutGrid[];
+  }
+  
+  if ('children' in node && properties.children) {
+    // Handle children separately as they need to be fetched by ID
+    // This is just a placeholder - actual implementation would need to fetch nodes by ID
+  }
+  
+  if ('zIndex' in node && properties.zIndex !== undefined) {
+    node.zIndex = properties.zIndex;
   }
 }

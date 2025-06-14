@@ -8,7 +8,7 @@ import { SupportedDesignSystem } from '../../shared/types';
 
 export function WelcomeScreen() {
   const { setAppStage, setDesignSystem, pageInfo, setError } = useStore();
-  const [selectedSystem, setSelectedSystem] = useState<SupportedDesignSystem>('Custom');
+  const [selectedSystem, setSelectedSystem] = useState<SupportedDesignSystem>('react-native-paper');
 
   const handleDesignSystemChange = (system: SupportedDesignSystem) => {
     setSelectedSystem(system);
